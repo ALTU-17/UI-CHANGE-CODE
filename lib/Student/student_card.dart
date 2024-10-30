@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 
+import '../Attendance/circleAttendance.dart';
+import '../ExamTimeTable/examTimeTable.dart';
 import '../common/rotatedDivider_Card.dart';
 import 'StudentDashboard.dart';
 
 class StudentCard extends StatefulWidget {
   final Function(int index) onTap;
-   StudentCard({super.key, required this.onTap});
+  StudentCard({super.key, required this.onTap});
   @override
   _StudentCardState createState() => _StudentCardState();
 }
@@ -22,6 +24,61 @@ class _StudentCardState extends State<StudentCard> {
   String url = "";
   String academicYr = "";
   String regId = "";
+  List<Map<String, dynamic>> examData = [];
+
+  Future<void> _fetchTodaysExams() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? schoolInfoJson = prefs.getString('school_info');
+    String? logUrls = prefs.getString('logUrls');
+
+    if (logUrls != null) {
+      try {
+        Map<String, dynamic> logUrlsParsed = json.decode(logUrls);
+        academicYr = logUrlsParsed['academic_yr'];
+        regId = logUrlsParsed['reg_id'];
+      } catch (e) {
+        print('Error parsing log URLs: $e');
+      }
+    } else {
+      print('Log URLs not found in SharedPreferences.');
+    }
+
+    if (schoolInfoJson != null) {
+      try {
+        Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
+        shortName = parsedData['short_name'];
+        url = parsedData['url'];
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$url/get_todays_exam'),
+        body: {
+          'reg_id': regId,
+          'academic_yr': academicYr,
+          'short_name': shortName,
+        },
+      );
+
+      print('get_todays_exam: ${response.body}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> apiResponse = json.decode(response.body);
+        setState(() {
+          // Use this data to dynamically display the exam data
+          examData = List<Map<String, dynamic>>.from(apiResponse);
+        });
+      } else {
+        print(
+            'Failed to load exam data with status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching exam data: $e');
+    }
+  }
 
   Future<void> _getSchoolInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -55,7 +112,7 @@ class _StudentCardState extends State<StudentCard> {
     if (url.isNotEmpty) {
       try {
         http.Response response = await http.post(
-          Uri.parse(url+"get_childs"),
+          Uri.parse(url + "get_childs"),
           body: {
             'reg_id': regId,
             'academic_yr': academicYr,
@@ -70,7 +127,8 @@ class _StudentCardState extends State<StudentCard> {
             students = List<Map<String, dynamic>>.from(apiResponse);
           });
         } else {
-          print('Failed to load students with status code: ${response.statusCode}');
+          print(
+              'Failed to load students with status code: ${response.statusCode}');
         }
       } catch (e) {
         print('Error during http request: $e');
@@ -80,58 +138,210 @@ class _StudentCardState extends State<StudentCard> {
     }
   }
 
-
   @override
   void initState() {
     super.initState();
     _getSchoolInfo();
+    _fetchTodaysExams();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text('My Child'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+    return WillPopScope(
+      onWillPop: () async {
+        // Pop until reaching the HistoryTab route
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(
+        // extendBodyBehindAppBar: true,
+        // appBar: AppBar(
+        //   // title: Text('My Child'),
+        //   backgroundColor: Colors.transparent,
+        //   elevation: 0,
+        // ),
+
+        body: Stack(
+
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/img.png', // Replace with your background image
+                fit: BoxFit.cover,
+              ),
+            ),
+            students.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : ListView(
+              children: [
+                // Display the student cards using ListView.builder
+                ListView.builder(
+                  shrinkWrap:
+                  true, // Important to wrap the builder within the ListView
+                  physics:
+                  NeverScrollableScrollPhysics(), // Prevent nested scrolling
+                  itemCount: students.length,
+                  itemBuilder: (context, index) {
+                    return StudentCardItem(
+                      firstName: students[index]['first_name'] ?? '',
+                      rollNo: students[index]['roll_no'] ?? '',
+                      className: (students[index]['class_name'] ?? '') +
+                          (students[index]['section_name'] ?? ''),
+                      cname: (students[index]['class_name'] ?? ''),
+                      secname: (students[index]['section_name'] ?? ''),
+                      classTeacher: students[index]['class_teacher'] ?? '',
+                      gender: students[index]['gender'] ?? '',
+                      studentId: students[index]['student_id'] ?? '',
+                      classId: students[index]['class_id'] ?? '',
+                      secId: students[index]['section_id'] ?? '',
+                      shortName: shortName,
+                      url: url,
+                      academicYr: academicYr,
+                      onTap: widget.onTap,
+                    );
+                  },
+                ),
+                // Display the exam card once for all students
+                _buildExamCard(),
+              ],
+            ),
+          ],
+        ),
       ),
-      body: Stack(
+    );
+  }
+// Method to build the exam card that shows exams for all students with separate cards for each exam
+
+  Widget _buildExamCard() {
+    if (examData.isEmpty) return Container();
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/img.png', // Replace with your background image
-              fit: BoxFit.cover,
+
+          // if(examData ==  '')
+          // Title for the Exam section
+          Text(
+            'Exams',
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-          students.isEmpty
-              ? Center(child: CircularProgressIndicator())
-              : ListView.builder(
-            itemCount: students.length,
-            itemBuilder: (context, index) {
-              return StudentCardItem(
-                firstName: students[index]['first_name'] ?? '',
-                rollNo: students[index]['roll_no'] ?? '',
-                className: (students[index]['class_name'] ?? '') + (students[index]['section_name'] ?? ''),
-                cname : (students[index]['class_name'] ?? ''),
-                secname : (students[index]['section_name'] ?? ''),
-                classTeacher: students[index]['class_teacher'] ?? '',
-                gender: students[index]['gender'] ?? '',
-                studentId: students[index]['student_id'] ?? '',
-                classId: students[index]['class_id'] ?? '',
-                secId: students[index]['section_id'] ?? '',
-                shortName: shortName,
-                url: url,
-                academicYr: academicYr,
-                onTap: widget.onTap,
+          SizedBox(height: 8.h),
+
+          // Display exams grouped by student name, with each exam in a separate card
+          Column(
+            children: examData.map((exam) {
+              String examSubject = exam['s_name'] ?? ''; // Fetch subject name
+              bool isStudyLeave =
+                  examSubject.isEmpty || exam['study_leave'] == 'Y';
+
+              // Parse the date from the response
+              DateTime examDate = DateTime.parse(exam['date']);
+              DateTime today = DateTime.now();
+              DateTime tomorrow = today.add(Duration(days: 1));
+
+              // Determine if the date is Today, Tomorrow, or another day
+              String displayDate;
+              if (_isSameDay(examDate, today)) {
+                displayDate = 'Today';
+              } else if (_isSameDay(examDate, tomorrow)) {
+                displayDate = 'Tomorrow';
+              } else {
+                displayDate = exam['date']; // Use the original date format if not Today or Tomorrow
+              }
+
+              // Wrap the card with InkWell to detect taps
+              return InkWell(
+                onTap: () {
+                  // Navigate to the exam details page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ExamTimeTablePage(
+                        shortName: shortName,academic_yr :exam['academic_yr'],classId:exam['class_id'],secId:exam['section_id']
+                        ,className:exam['class_name'] // Pass the exam data to the new page
+                      ),
+                    ),
+                  );
+                },
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  color: _isSameDay(examDate, tomorrow) ? Colors.grey[300] : Colors.white, // Gray for Tomorrow, white otherwise
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 8.0, horizontal: 26.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Student's first name
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            exam['first_name'] ?? '',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.sp,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Exam date
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            displayDate,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.black,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Show 'Study Leave' if subject name is empty, else show subject name
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            isStudyLeave ? 'Study Leave' : examSubject,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: isStudyLeave ? Colors.redAccent : Colors.black,
+                            ),
+                            textAlign: TextAlign.right,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
-            },
+            }).toList(),
           ),
         ],
       ),
     );
   }
+
+// Helper method to check if two DateTime objects represent the same calendar day
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+  }
+
 }
+
+
 
 class StudentCardItem extends StatefulWidget {
   final String firstName;
@@ -149,7 +359,7 @@ class StudentCardItem extends StatefulWidget {
   final String secId;
   final Function(int index) onTap;
 
-   StudentCardItem({
+  StudentCardItem({
     required this.firstName,
     required this.rollNo,
     required this.className,
@@ -171,49 +381,20 @@ class StudentCardItem extends StatefulWidget {
 }
 
 class _StudentCardItemState extends State<StudentCardItem> {
-  String attendance = "Loading...";
-  List<Map<String, dynamic>> exams = [];
-
+  String attendance = "Loading";
+  late Future<List<StudentCardItem>> future;
   @override
   void initState() {
     super.initState();
     _fetchAttendance();
-    _fetchExams();
   }
 
-  Future<void> _fetchExams() async {
-    List<Map<String, dynamic>> examData = await _fetchTodaysExams();
+  Future<void> refresh() async {
     setState(() {
-      exams = examData;
+      _fetchAttendance(); // Refresh the homework notes
     });
   }
 
-  Future<List<Map<String, dynamic>>> _fetchTodaysExams() async {
-    try {
-      print('regid: $reg_id');
-
-      final response = await http.post(
-        Uri.parse('${widget.url}get_todays_exam'),
-        body: {
-          'short_name': widget.shortName,
-          'reg_id': reg_id,
-          'academic_yr': widget.academicYr,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        List<dynamic> examList = json.decode(response.body);
-        // Assuming we are dealing with one student's exam data
-        return List<Map<String, dynamic>>.from(examList);
-      } else {
-        print('Failed to load exams: ${response.statusCode}');
-        return [];
-      }
-    } catch (e) {
-      print('Error fetching exams: $e');
-      return [];
-    }
-  }
 
   Future<void> _fetchAttendance() async {
     http.Response response = await http.post(
@@ -262,207 +443,170 @@ class _StudentCardItemState extends State<StudentCardItem> {
               gender: widget.gender,
               classId: widget.classId,
               secId: widget.secId,
+              attendance_perc: attendance,
             ),
           ),
         );
         if (x == null) return;
         widget.onTap(x as int);
+        if (x == true) {
+          refresh();
+        }
       },
       child: Column(
         children: [
           _buildStudentInfoCard(),
-          if (exams.isNotEmpty) _buildExamList(), // Show exam list only if there are exams
         ],
       ),
     );
   }
 
   Widget _buildStudentInfoCard() {
-    return SizedBox(
-      height: 100.h,
+    return Padding(
+      padding: const EdgeInsets.only(top: 5.0),
+
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 0.h),
+
         child: Card(
-          child: Row(
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox.square(
-                    dimension: 55.w,
-                    child: Image.asset(
-                      widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
-                    ),
+          elevation: 4, // Shadow depth for a floating effect
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(6.0), // Add padding inside the card
+            child: Row(
+              children: [
+                // Student Image Section
+                SizedBox.square(
+                  dimension: 60.w,
+                  child: Image.asset(
+                    widget.gender == 'M'
+                        ? 'assets/boy.png'
+                        : 'assets/girl.png',
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(3, 3, 0, 0),
-                    child: RichText(
-                      text: TextSpan(
-                        text: 'Attendance ',
-                        style: TextStyle(fontSize: 10.sp, color: Colors.black),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: '$attendance%',
-                            style: TextStyle(color: Colors.blue),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(
-                flex: 0,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
+                ),
+                SizedBox(width: 4.w), // Add space between image and details
+
+                // Student Info Section
+                Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         widget.firstName,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.sp,
+                          color: Colors.black87,
+                        ),
                       ),
-                      Text(
-                        "RollNo: ${widget.rollNo}",
-                        style: TextStyle(fontSize: 10.sp, color: Colors.red),
+                      SizedBox(height: 5.h),
+                      Row(
+                        children: [
+                          Icon(Icons.assignment_turned_in, color: Colors.green, size: 14.sp),
+                          SizedBox(width: 5.w),
+                          Text(
+                            'Roll No: ${widget.rollNo}',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 5.h),
+                      Row(
+                        children: [
+                          Icon(Icons.class_, color: Colors.blue, size: 14.sp),
+                          SizedBox(width: 5.w),
+                          Text(
+                            'Class: ${widget.className}',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 5.h),
+                      Row(
+                        children: [
+                          Icon(Icons.person, color: Colors.red, size: 14.sp),
+                          SizedBox(width: 5.w),
+                          Text(
+                            'Teacher: ${trimTeacherName(widget.classTeacher)}',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-              Transform.rotate(
-                angle: -math.pi / 180.0,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Container(
-                    width: 2.w,
-                    height: 70.h,
-                    color: Color.fromARGB(255, 175, 167, 167),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "Class",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      widget.className,
-                      style: TextStyle(fontSize: 10.sp, color: Colors.red),
-                    ),
-                  ],
-                ),
-              ),
-              const RotatedDivider(),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(13.0),
+
+                // Attendance Section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0,0,10,5),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Teacher",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      SizedBox(
+                        child: attendance.isNotEmpty && double.tryParse(attendance) != null
+                            ? CircularAttendanceIndicator2(
+                        percentage:   double.parse(attendance),
+                      ): CircularAttendanceIndicator2(
+            percentage: 0, // Default to 0 if data is not available
+          ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '$attendance%',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
                       ),
                       Text(
-                        widget.classTeacher,
-                        style: TextStyle(fontSize: 10.sp, color: Colors.red),
+                        'Attendance',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: Colors.grey[700],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildExamList() {
-    // Define the name you want to filter by
-    String filterName = widget.firstName; // Replace 'John' with the desired first_name
-
-    // Filter the exams list to only include those with the matching first_name
-    List<Map<String, dynamic>> filteredExams = exams.where((exam) {
-      return widget.firstName == filterName;
-    }).toList();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-      child: Column(
-        children: filteredExams.map((exam) {
-          // Parse the date from the response
-          DateTime examDate = DateTime.parse(exam['date']);
-          DateTime today = DateTime.now();
-          DateTime tomorrow = today.add(Duration(days: 1));
-
-          // Determine if the date is Today, Tomorrow, or another day
-          String displayDate;
-          if (_isSameDay(examDate, today)) {
-            displayDate = 'Today';
-          } else if (_isSameDay(examDate, tomorrow)) {
-            displayDate = 'Tomorrow';
-          } else {
-            displayDate = exam['date']; // Use the original date format if not Today or Tomorrow
-          }
-
-          // Check if this is a "Study Leave"
-          bool isStudyLeave = exam['study_leave'] == 'Y' && (exam['s_name'] == null || exam['s_name'].isEmpty);
-
-          return Container(
-            margin: EdgeInsets.symmetric(vertical: 4.0),
-            padding: EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: _isSameDay(examDate, tomorrow) ? Colors.grey[300] : Colors.white, // Gray for Tomorrow, white otherwise
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.firstName.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  displayDate, // Show "Today", "Tomorrow", or the original date
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  isStudyLeave ? 'Study Leave' : (exam['s_name'] ?? ''),
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isStudyLeave ? Colors.red : Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
+  // Method to determine color based on percentage
+  Color _getColor() {
+    final double percentage = attendance as double;
+    if (percentage <  0.35) {
+      return Colors.red; // Red for below 35%
+    } else if (percentage < 0.65) {
+      return Colors.orange; // Orange for below 65%
+    } else {
+      return Colors.green; // Green for 65% and above
+    }
   }
 
-// Helper method to check if two DateTime objects represent the same calendar day
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+  String trimTeacherName(String name) {
+    List<String> parts = name.split(' ');
+    if (parts.length > 2) {
+      return '${parts[0]} ${parts[1]}'; // Return the first two parts
+    }
+    return name; // If there's no second space, return the original name
   }
 
 

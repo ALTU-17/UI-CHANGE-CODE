@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:evolvu/calender_Page.dart';
 import 'package:evolvu/common/drawerAppBar.dart';
 import 'package:evolvu/Parent/parentProfile_Page.dart';
@@ -8,8 +9,11 @@ import 'package:evolvu/username_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
+import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
 
@@ -28,6 +32,14 @@ String academic_yr = "";
 String reg_id = "";
 String user_id = "";
 String url = "";
+String durl = "";
+
+String paymentUrl="";
+String paymentUrlShare="";
+String receiptUrl = "";
+String smartchat_url="";
+String username = "";
+
 
 Future<void> _getSchoolInfo() async {
   final prefs = await SharedPreferences.getInstance();
@@ -58,15 +70,99 @@ Future<void> _getSchoolInfo() async {
 
       shortName = parsedData['short_name'];
       url = parsedData['url'];
+      durl = parsedData['project_url'];
+
+      fetchDashboardData(url);
 
       print('Short Name: $shortName');
       print('URL: $url');
+      print('URL: $durl');
     } catch (e) {
       print('Error parsing school info: $e');
     }
   } else {
     print('School info not found in SharedPreferences.');
   }
+}
+
+Future<void> fetchDashboardData(String url) async {
+  final url1 = Uri.parse(url +'show_icons_parentdashboard_apk');
+  // print('Receipt URL: $shortName');
+
+  try {
+    final response = await http.post(url1,
+      body: {'short_name': shortName},
+    );
+
+    if (response.statusCode == 200) {
+      print('response.body URL: ${response.body}');
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      // Extract the required fields
+      receiptUrl = data['receipt_url'];
+      paymentUrl = data['payment_url'];
+      smartchat_url = data['smartchat_url'];
+      String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
+
+      String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
+      username = username;
+
+      String secretKey = 'aceventura@services';
+
+      String encryptedUsername = encryptUsername(username, secretKey);
+
+      paymentUrlShare = paymentUrl + "?reg_id=" + reg_id +
+          "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
+
+      print('Encrypted Username: $paymentUrlShare');
+      print('Encrypted Username: $encryptedUsername');
+      // Use these values as needed
+
+      print('Receipt URL: $receiptUrl');
+      print('Payment URL: $paymentUrl');
+      print('smartchat_url : $smartchat_url');
+
+      // You can store these values in variables or use them directly
+    } else {
+      print('Failed to load data: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error: $e');
+  }
+}
+
+String encryptUsername(String username, String secretKey) {
+  // Combine the username and secretKey
+  String combined = username + secretKey;
+
+  // Convert the combined string to bytes
+  List<int> bytes = utf8.encode(combined);
+
+  // Perform SHA1 encryption
+  Digest sha1Result = sha1.convert(bytes);
+
+  // Return the encrypted value as a hexadecimal string
+  return sha1Result.toString();
+}
+
+String customUriEncode(String input, String allowedChars) {
+  final StringBuffer encoded = StringBuffer();
+
+  for (int i = 0; i < input.length; i++) {
+    final String char = input[i];
+    if (allowedChars.contains(char)) {
+      encoded.write(char);  // Allow the character as-is
+    } else {
+      // Percent-encode the character
+      final List<int> bytes = utf8.encode(char);
+      for (final int byte in bytes) {
+        encoded.write('%${byte.toRadixString(16).toUpperCase()}');
+      }
+    }
+  }
+
+  return encoded.toString();
 }
 
 class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
@@ -76,7 +172,6 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   void initState() {
     super.initState();
     _getSchoolInfo();
-
   }
 
   @override
@@ -246,7 +341,7 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
             child: ListBody(
               children: <Widget>[
                 Text('Do you want to logout?',
-              style: TextStyle(fontSize: 16.sp,color: Colors.grey)),
+                    style: TextStyle(fontSize: 16.sp,color: Colors.grey)),
               ],
             ),
           ),
@@ -290,28 +385,45 @@ Future<void> logout(BuildContext context) async {
   // Navigate to the login screen
   Navigator.of(context).pushAndRemoveUntil(
     MaterialPageRoute(builder: (context) => UserNamePage()),
-    (Route<dynamic> route) => false,
+        (Route<dynamic> route) => false,
   );
 }
+
 
 class CustomPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<CardItem> cardItems = [
+
       CardItem(
-        imagePath: 'assets/logout.png',
+        imagePath:'assets/parents.png',
+        title: 'My Profile',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ParentProfilePage()),
+          );
+        },
+      ),
+
+      CardItem(
+        imagePath: 'assets/logout1.png',
         title: 'LogOut',
         onTap: () {
           showLogoutConfirmationDialog(context);
         },
       ),
+
       CardItem(
-        imagePath: 'assets/aboutus.png',
-        title: 'About Us',
+        imagePath: 'assets/cashpayment.png',
+        title: 'Fees Payment',
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AboutUsPage(academic_yr:academic_yr,shortName: shortName)),
+            MaterialPageRoute(
+              builder: (context) => PaymentWebview(
+                  regId: reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr),
+            ),
           );
         },
       ),
@@ -326,6 +438,29 @@ class CustomPopup extends StatelessWidget {
         },
       ),
 
+      CardItem(
+        imagePath: 'assets/ace.png',
+        title: 'About Us',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AboutUsPage(academic_yr:academic_yr,shortName: shortName)),
+          );
+        },
+      ),
+
+
+      // Add the new Share App card here
+      CardItem(
+        imagePath: 'assets/share.png', // Add an appropriate icon for sharing
+        title: 'Share App',
+        onTap: () {
+          Share.share(
+            'Download Evolvu: Smart Schooling App https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool', // Replace with your app link
+            subject: 'Parent App!',
+          );
+        },
+      ),
       // Add more CardItems here...
     ];
 

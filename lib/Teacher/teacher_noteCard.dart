@@ -17,6 +17,7 @@ class TeacherNote {
   final String name;
   final String subjectName;
   final String className;
+  final String sectionname;
   final String publish;
   final String read_status;
   final List<Attachment> imageList;
@@ -27,6 +28,7 @@ class TeacherNote {
     required this.description,
     required this.name,
     required this.subjectName,
+    required this.sectionname,
     required this.className,
     required this.publish,
     required this.read_status,
@@ -42,6 +44,7 @@ class TeacherNote {
       name: json['name'],
       subjectName: json['subject_name'] ?? 'N/A',
       className: json['classname'],
+      sectionname: json['sectionname'],
       publish: json['publish'],
       read_status: json['read_status'],
       imageList: (json['image_list'] as List)
@@ -71,6 +74,7 @@ class NoteCard extends StatelessWidget {
   final String note;
   final String subject;
   final String classname;
+  final String sectionname;
   final String readStatus;
   final VoidCallback onTap;
 
@@ -81,6 +85,7 @@ class NoteCard extends StatelessWidget {
     required this.note,
     required this.subject,
     required this.classname,
+    required this.sectionname,
     required this.readStatus,
     required this.onTap,
   }) : super(key: key);

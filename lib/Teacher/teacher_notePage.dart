@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:evolvu/Teacher/teacher_DeatilCard.dart';
 import 'package:evolvu/Teacher/teacher_noteCard.dart';
@@ -70,6 +71,7 @@ class _TeacherNotePageState extends State<TeacherNotePage> {
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
+      print(data);
       return data.map((item) => TeacherNote.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load teacher notes');
@@ -90,98 +92,107 @@ class _TeacherNotePageState extends State<TeacherNotePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        toolbarHeight: 50.h,
-        title: Text(
-          "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
-          style: TextStyle(fontSize: 14.sp, color: Colors.white),
-        ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Pop until reaching the HistoryTab route
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          toolbarHeight: 50.h,
+          title: Text(
+            "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
+            style: TextStyle(fontSize: 14.sp, color: Colors.white),
           ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        child: Column(
-          children: [
-            SizedBox(height: 80.h),
-            Text(
-              "Teacher Note",
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+        body: Container(
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.pink, Colors.blue],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            SizedBox(height: 10.h),
-            Expanded(
-              child: FutureBuilder<List<TeacherNote>>(
-                future: futureNotes,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No notes available'));
-                  } else {
-                    final notes = snapshot.data!;
-                    return ListView.builder(
-                      padding: EdgeInsets.only(top: 10.h),
-                      itemCount: notes.length,
-                      itemBuilder: (context, index) {
-                        final note = notes[index];
-                        return Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: NoteCard(
-                            name: note.name,
-                            date: note.date,
-                            note: note.description,
-                            subject: note.subjectName,
-                            classname: note.className,
-                            readStatus: note.read_status,
-                            onTap: () async {
-                              // Navigate to TeacherDetailCard and wait for the result
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => TeacherDetailCard(
-                                    shortName: widget.shortName,
-                                    academic_yr: widget.academic_yr,
-                                    name: note.name,
-                                    notesId: note.notesId,
-                                    date: note.date,
-                                    note: note.description,
-                                    subject: note.subjectName,
-                                    className: note.className,
-                                    imageList: note.imageList,
+          ),
+          child: Column(
+            children: [
+              SizedBox(height: 80.h),
+              Text(
+                "Teacher Note",
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Expanded(
+                child: FutureBuilder<List<TeacherNote>>(
+                  future: futureNotes,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No notes available'));
+                    } else {
+                      final notes = snapshot.data!;
+                      return ListView.builder(
+                        padding: EdgeInsets.only(top: 10.h),
+                        itemCount: notes.length,
+                        itemBuilder: (context, index) {
+                          final note = notes[index];
+                          return Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: NoteCard(
+                              name: note.name,
+                              date: note.date,
+                              note: note.description,
+                              subject: note.subjectName,
+                              classname: note.className,
+                              sectionname: note.sectionname,
+                              readStatus: note.read_status,
+                              onTap: () async {
+                                // Navigate to TeacherDetailCard and wait for the result
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TeacherDetailCard(
+                                      shortName: widget.shortName,
+                                      academic_yr: widget.academic_yr,
+                                      name: note.name,
+                                      notesId: note.notesId,
+                                      date: note.date,
+                                      note: note.description,
+                                      subject: note.subjectName,
+                                      className: note.className,
+                                      sectionname: note.sectionname,
+                                      imageList: note.imageList,
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
 
-                              // Refresh the page if the result is true
-                              if (result == true) {
-                                refreshfetchTeacherNotes();
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
+                                // Refresh the page if the result is true
+                                if (result == true) {
+                                  refreshfetchTeacherNotes();
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

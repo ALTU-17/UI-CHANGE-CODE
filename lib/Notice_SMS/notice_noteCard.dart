@@ -1,6 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:evolvu/common/common_style.dart';
 
+import '../Teacher/Attachment.dart';
+
+class Notice {
+  final String noticeId;
+  final String unqId;
+  final String subject;
+  final String noticeDesc;
+  final String noticeDate;
+
+  final String startDate;
+  final String endDate;
+  final String classId;
+  final String sectionId;
+  final String teacherId;
+  final String noticeType;
+  final String startTime;
+  final String endTime;
+  final String academicYr;
+  final String publish;
+  final String teacherName;
+  final String className;
+  final String noticeRLogId;
+  final String readStatus;
+  final List<Attachment> imageList;
+
+  Notice({
+    required this.noticeId,
+    required this.unqId,
+    required this.subject,
+    required this.noticeDesc,
+    required this.noticeDate,
+    required this.startDate,
+    required this.endDate,
+    required this.classId,
+    required this.sectionId,
+    required this.teacherId,
+    required this.noticeType,
+    required this.startTime,
+    required this.endTime,
+    required this.academicYr,
+    required this.publish,
+    required this.teacherName,
+    required this.className,
+    required this.noticeRLogId,
+    required this.readStatus,
+    required this.imageList,
+  });
+
+  factory Notice.fromJson(Map<String, dynamic> json) {
+    return Notice(
+      noticeId: json['notice_id']?.toString() ?? '',
+      unqId: json['unq_id']?.toString() ?? '',
+      subject: json['subject']?.toString() ?? '',
+      noticeDesc: json['notice_desc']?.toString() ?? '',
+      noticeDate: json['notice_date']?.toString() ?? '',
+      startDate: json['start_date']?.toString() ?? '',
+      endDate: json['end_date']?.toString() ?? '',
+      classId: json['class_id']?.toString() ?? '',
+      sectionId: json['section_id']?.toString() ?? '',
+      teacherId: json['teacher_id']?.toString() ?? '',
+      noticeType: json['notice_type']?.toString() ?? '',
+      startTime: json['start_time']?.toString() ?? '',
+      endTime: json['end_time']?.toString() ?? '',
+      academicYr: json['academic_yr']?.toString() ?? '',
+      publish: json['publish']?.toString() ?? '',
+      teacherName: json['teachername']?.toString() ?? '',
+      className: json['classname']?.toString() ?? '',
+      noticeRLogId: json['notice_r_log_id']?.toString() ?? '',
+      readStatus: json['read_status']?.toString() ?? '',
+      imageList: (json['image_list'] as List)
+          .map((item) => Attachment.fromJson(item))
+          .toList(),
+    );
+  }
+  String get formattedNoticeDate {
+    // Assuming noticeDate is in yyyy-mm-dd format, convert it to dd-mm-yyyy
+    if (noticeDate.isNotEmpty && noticeDate.length >= 10) {
+      List<String> parts = noticeDate.split('-');
+      if (parts.length >= 3) {
+        return '${parts[2]}-${parts[1]}-${parts[0]}';
+      }
+    }
+    return noticeDate; // Return as is if format is unexpected
+  }
+}
+
+
 class NoticeNoteCard extends StatelessWidget {
   final String teacher;
   final String remarksubject;
@@ -18,7 +105,10 @@ class NoticeNoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color cardColor = readStatus == '0' ? Colors.grey : Colors.white;
+
+    Color cardColor = readStatus == '0'
+        ? Colors.grey
+        : Colors.white;
 
     return GestureDetector(
       onTap: onTap,

@@ -67,7 +67,9 @@ class _LoginDemoState extends State<UserNamePage> {
   void initState() {
     super.initState();
     // email = TextEditingController(text: widget.emailstr);
-    checkLoginStatus(); // Check login status when the login screen is initialized
+    checkLoginStatus();
+    // _getSchoolInfo();
+// Check login status when the login screen is initialized
   }
 
 // Define a class to represent the user's school information
@@ -94,6 +96,7 @@ class _LoginDemoState extends State<UserNamePage> {
       );
 
       print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -144,6 +147,56 @@ class _LoginDemoState extends State<UserNamePage> {
     }
   }
 
+  String shortName = "";
+  String academic_yr = "";
+  String reg_id = "";
+  String user_id = "";
+  String url = "";
+  String durl = "";
+
+  Future<void> _getSchoolInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? schoolInfoJson = prefs.getString('school_info');
+    String? logUrls = prefs.getString('logUrls');
+    print('logUrls====\\\\\: $logUrls');
+    if (logUrls != null) {
+      try {
+        Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
+        print('logUrls====\\\\\11111: $logUrls');
+
+        user_id = logUrlsparsed['user_id'];
+        academic_yr = logUrlsparsed['academic_yr'];
+        reg_id = logUrlsparsed['reg_id'];
+
+        print('academic_yr ID: $academic_yr');
+        print('reg_id: $reg_id');
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
+    } else {
+      print('School info not found in SharedPreferences.');
+    }
+
+    if (schoolInfoJson != null) {
+      try {
+        Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
+
+        shortName = parsedData['short_name'];
+        url = parsedData['url'];
+        durl = parsedData['project_url'];
+        checkLoginStatus(); // Check login status when the login screen is initialized
+
+        print('Short Name: $shortName');
+        print('URL: $url');
+        print('URL: $durl');
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
+    } else {
+      print('School info not found in SharedPreferences.');
+    }
+  }
+
   void checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -151,14 +204,14 @@ class _LoginDemoState extends State<UserNamePage> {
    //   If user is already logged in, navigate to QRScannerPage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academic_yr,shortName: shortName)),
+        MaterialPageRoute(builder: (_) => ParentDashBoardPage(shortName: shortName,academic_yr:academic_yr)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    checkLoginStatus(); // Check login status when the login screen is initialized
+    _getSchoolInfo(); // Check login status when the login screen is initialized
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

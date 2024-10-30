@@ -106,64 +106,71 @@ class NoticeDetailCard extends StatelessWidget {
   Widget build(BuildContext context) {
     updateReadStatus();
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        toolbarHeight: 50.h,
-        title: Text(
-          "$shortName EvolvU Smart Parent App($academic_yr)",
-          style: TextStyle(fontSize: 14.sp, color: Colors.white),
-        ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Pop until reaching the HistoryTab route
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          toolbarHeight: 50.h,
+          title: Text(
+            "$shortName EvolvU Smart Parent App($academic_yr)",
+            style: TextStyle(fontSize: 14.sp, color: Colors.white),
           ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        child: Column(
-          children: [
-            SizedBox(height: 80.h),
-            Text(
-              "Notice/SMS Details",
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+        body: Container(
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.pink, Colors.blue],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            SizedBox(height: 10.h),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.only(top: 6.h),
-                itemCount: 1,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: NoticeDetailPage(
-                      noticeInfo: NoticeInfo(
-                          classname:classname,
-                          date:date,
-                        subject:remarksubject,
-                        description:noticeDesc,
-                        attachment:attachment,
-                        noticeId:noticeID,
+          ),
+          child: Column(
+            children: [
+              SizedBox(height: 80.h),
+              Text(
+                "Notice/SMS Details",
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.only(top: 6.h),
+                  itemCount: 1,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: NoticeDetailPage(
+                        noticeInfo: NoticeInfo(
+                            classname:classname,
+                            date:date,
+                          subject:remarksubject,
+                          description:noticeDesc,
+                          attachment:attachment,
+                          noticeId:noticeID,
 
+                        ),
+
+                        // showAttachments: type == 'notice',
                       ),
-
-                      // showAttachments: type == 'notice',
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

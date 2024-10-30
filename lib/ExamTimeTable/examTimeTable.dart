@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 
 class ExamTimeTablePage extends StatefulWidget {
-  final String studentId;
+
   final String academic_yr;
   final String shortName;
   final String classId;
@@ -15,12 +15,12 @@ class ExamTimeTablePage extends StatefulWidget {
   final String className;
 
   ExamTimeTablePage(
-      {required this.studentId,
-      required this.academic_yr,
-      required this.shortName,
-      required this.classId,
-      required this.secId,
-      required this.className});
+      {
+        required this.academic_yr,
+        required this.shortName,
+        required this.classId,
+        required this.secId,
+        required this.className});
 
   @override
   _ExamTimeTablePageState createState() => _ExamTimeTablePageState();
@@ -92,8 +92,8 @@ class _ExamTimeTablePageState extends State<ExamTimeTablePage> {
                       return Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
                       return Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Center(child: Text("Exam Timetable is not available!",style: TextStyle(backgroundColor: Colors.white,fontSize: 18),)),
+                        padding: const EdgeInsets.only(top: 250.0),
+                        child: Center(child: Text("Exam Timetable is not available!",style: TextStyle(fontSize: 18),)),
                       );
                     } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return Center(child: Text("Exam Timetable is not available"));
@@ -160,16 +160,20 @@ class Period {
 
   Period(
       {required this.subject,
-      required this.date,
-      required this.name,
-      this.isStudyLeave = false});
+        required this.date,
+        required this.name,
+        this.isStudyLeave = false});
 
   factory Period.fromJson(Map<String, dynamic> json) {
+    // When 'study_leave' is 'Y', force the subject to "Study Leave"
+    bool isStudyLeave = json['study_leave'] == 'Y';
+    String subject = isStudyLeave ? 'Study Leave' : (json['s_name'] ?? 'Unknown Subject');
+
     return Period(
-      subject: json['s_name'] ?? 'Study Leave',
+      subject: subject,
       date: _formatDate(json['date']),
       name: json['name'],
-      isStudyLeave: json['study_leave'] == 'Y',
+      isStudyLeave: isStudyLeave,
     );
   }
 
@@ -178,7 +182,6 @@ class Period {
     return DateFormat('dd-MM-yyyy').format(parsedDate);
   }
 }
-
 class PeriodRow extends StatelessWidget {
   final Period period;
 
@@ -192,33 +195,37 @@ class PeriodRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 period.isStudyLeave ? Icons.book : Icons.school,
                 color: period.isStudyLeave ? Colors.red : Colors.black,
               ),
               SizedBox(width: 8),
-              Text(
-                period.subject,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: period.isStudyLeave ? Colors.red : Colors.black,
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 150, // Set a fixed width for the subject
+                ),
+                child: Text(
+                  period.subject, // Will show "Study Leave" if applicable
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: period.isStudyLeave ? Colors.red : Colors.black,
+                  ),
+                  maxLines: 5, // Allow text to wrap to the next line if necessary
+                  overflow: TextOverflow.visible, // Ensure proper text wrapping
                 ),
               ),
             ],
           ),
-          Row(
-            children: [
-              Text(
-                period.date,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: period.isStudyLeave ? Colors.red : Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            period.date,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: period.isStudyLeave ? Colors.red : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

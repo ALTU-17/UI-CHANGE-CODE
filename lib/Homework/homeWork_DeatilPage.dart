@@ -48,8 +48,6 @@ class HomeworkInfo {
   });
 }
 
-
-
 class HomeWorkDetailPage extends StatefulWidget {
   final HomeworkInfo homeworkInfo;
 
@@ -58,11 +56,6 @@ class HomeWorkDetailPage extends StatefulWidget {
   @override
   _HomeWorkDetailPageState createState() => _HomeWorkDetailPageState();
 }
-
-
-
-
-
 
 class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
   late TextEditingController _parentCommentController;
@@ -176,6 +169,10 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    DateTime parsedDate = DateTime.parse(widget.homeworkInfo.assignedDate);
+    DateTime parsedDate1 = DateTime.parse(widget.homeworkInfo.submissionDate);
+    String formatted_assignedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+    String formatted_submissionDate = DateFormat('dd-MM-yyyy').format(parsedDate1);
     return Container(
       height: 720.h,
       margin: EdgeInsets.all(8.0),
@@ -193,150 +190,148 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
         ],
       ),
       child: SingleChildScrollView(
-        child:
-        Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Class: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Class: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.homeworkInfo.className,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.className,
-            style: TextStyle(
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Subject: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.homeworkInfo.subject,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Subject: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Assigned Date: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: formatted_assignedDate,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.subject,
-            style: TextStyle(
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Submission Date: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: formatted_submissionDate,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Assigned Date: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Homework: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.homeworkInfo.homework,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.assignedDate,
-            style: TextStyle(
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Homework Status: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.homeworkInfo.homeworkStatus,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Submission Date: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
+            SizedBox(height: 8.h),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Teacher Comment: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  TextSpan(
+                    text: widget.homeworkInfo.teachersComment,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.submissionDate,
-            style: TextStyle(
-              fontSize: 16.sp,
-            ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Homework: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
-            ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.homework,
-            style: TextStyle(
-              fontSize: 16.sp,
-            ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Homework Status: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
-            ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.homeworkStatus,
-            style: TextStyle(
-              fontSize: 16.sp,
-            ),
-          ),
-        ],
-      ),
-    ),
-    SizedBox(height: 8.h),
-    Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: 'Teacher Comment: ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
-            ),
-          ),
-          TextSpan(
-            text: widget.homeworkInfo.teachersComment,
-            style: TextStyle(
-              fontSize: 16.sp,
-            ),
-          ),
-        ],
-      ),
-    ),
-
             SizedBox(height: 10.h),
             Text(
               'Parent\'s Comment:',
@@ -386,10 +381,19 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
 
                       title: isFileNotUploaded
                           ? Text(
-                              'File is not uploaded properly',
-                              style:
-                                  TextStyle(fontSize: 14.sp, color: Colors.red),
+                              attachment.imageName +
+                                  '\nFile is not uploaded properly',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.red,
+                              ),
                             )
+                          //   subtitle: Text(
+                          //   'File is not uploaded properly',
+                          //   style: TextStyle(
+                          //     fontSize: 14.sp,
+                          //   ),
+                          // )
                           : Text(
                               attachment.imageName,
                               style: TextStyle(fontSize: 14.sp),
@@ -407,11 +411,19 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
                         // String? projectUrl = await _getProjectUrl();
                         if (projectUrl != null) {
                           try {
-                            String downloadUrl = projectUrl +
-                                'uploads/homework/${widget.homeworkInfo.publishDate}/${widget.homeworkInfo.homeworkId}/${attachment.imageName}';
-                             downloadFile(downloadUrl, context,attachment.imageName);
-                            print('Failed downloadUrl $downloadUrl');
-
+                            if (attachment.fileSize == 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('File not uploaded properly'),
+                                ),
+                              );
+                            } else {
+                              String downloadUrl = projectUrl +
+                                  'uploads/homework/${widget.homeworkInfo.publishDate}/${widget.homeworkInfo.homeworkId}/${attachment.imageName}';
+                              downloadFile(
+                                  downloadUrl, context, attachment.imageName);
+                              print('Failed downloadUrl $downloadUrl');
+                            }
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -461,19 +473,35 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
     _teacherCommentController.dispose();
     super.dispose();
   }
-  void downloadFile(String url, BuildContext context,String name) async {
-    var path = "/storage/emulated/0/Download/Evolvuschool/Parent/Homework/$name";
+
+  void downloadFile(String url, BuildContext context, String name) async {
+    var directory =
+        Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Homework");
+
+    // Ensure the directory exists
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    var path = "${directory.path}/$name";
     var file = File(path);
-    var res = await get(Uri.parse(url));
-    file.writeAsBytes(res.bodyBytes);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Download/Evolvuschool/Parent/Homework/$name File downloaded successfully. '),
-      ),
-    );
+    try {
+      var res = await http.get(Uri.parse(url));
+      await file.writeAsBytes(res.bodyBytes);
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'File downloaded successfully: Download/Evolvuschool/Parent/Homework'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file: $e'),
+        ),
+      );
+    }
   }
 }
-
-

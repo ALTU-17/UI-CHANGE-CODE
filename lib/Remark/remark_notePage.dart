@@ -2,6 +2,7 @@ import 'package:evolvu/Remark/remark_DeatilCard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'remark_noteCard.dart'; // Update the import path accordingly
@@ -117,12 +118,16 @@ class _RemarkNotePage extends State<RemarkNotePage> {
       }
     }
 
+    DateTime now = DateTime.now();
+    String formattedDate = DateFormat('yyyy-MM-dd').format(now);
+    print(formattedDate); // Example output: 2023-08-10
+
     final response = await http.post(
       Uri.parse(url + 'remark_read_log_create'),
       body: {
         'remark_id': remarkId,
         'parent_id': reg_id,
-        'read_date': "2024-07-08",
+        'read_date': formattedDate,
         'short_name': shortName,
       },
     );
@@ -138,90 +143,104 @@ class _RemarkNotePage extends State<RemarkNotePage> {
     }
   }
 
+  Future<void> refreshRemarkNotes() async {
+    setState(() {
+      futureRemarks = fetchRemarks(); // Refresh the homework notes
+    });
+  }
+
     @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        toolbarHeight: 50.h,
-        title: Text(
-          "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
-          style: TextStyle(fontSize: 14.sp, color: Colors.white),
-        ),
+      return WillPopScope(
+        onWillPop: () async {
+          // Pop until reaching the HistoryTab route
+          Navigator.pop(context, true);
+          return false;
+        },
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          toolbarHeight: 50.h,
+          title: Text(
+            "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
+            style: TextStyle(fontSize: 14.sp, color: Colors.white),
           ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        child: Column(
-          children: [
-            SizedBox(height: 80.h),
-            Text(
-              "Student Remarks",
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+        body: Container(
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.pink, Colors.blue],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            SizedBox(height: 10.h),
-            Expanded(
-              child: FutureBuilder<List<Remark>>(
-                future: futureRemarks,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No remarks assigned'));
-                  } else {
-                    return ListView.builder(
-                      padding: EdgeInsets.only(top: 10.h),
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final remark = snapshot.data![index];
-                        return Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: RemarkNoteCard(
-                            date: remark.remarkDate,
-                            teacher: remark.teacherName,
-                            remarksubject: remark.remarkSubject,
-                            readStatus: remark.readStatus,
-                            onTap: () async {
-                              await updateReadStatus(remark.remarkId);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => RemarkDetailCard(
-                                    shortName: shortName,
-                                    academic_yr: academic_yr,
-                                    remarksubject: remark.remarkSubject,
-                                    imageList: remark.imageList,
-                                    description: remark.remarkDesc,
-                                    remarkId:remark.remarkId,
-                                    remarkDate: remark.remarkDate,
+          ),
+          child: Column(
+            children: [
+              SizedBox(height: 80.h),
+              Text(
+                "Student Remarks",
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Expanded(
+                child: FutureBuilder<List<Remark>>(
+                  future: futureRemarks,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No remarks assigned'));
+                    } else {
+                      return ListView.builder(
+                        padding: EdgeInsets.only(top: 10.h),
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final remark = snapshot.data![index];
+                          return Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: RemarkNoteCard(
+                              date: remark.remarkDate,
+                              teacher: remark.teacherName,
+                              remarksubject: remark.remarkSubject,
+                              readStatus: remark.readStatus,
+                              onTap: () async {
+                                await updateReadStatus(remark.remarkId);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => RemarkDetailCard(
+                                      shortName: shortName,
+                                      academic_yr: academic_yr,
+                                      remarksubject: remark.remarkSubject,
+                                      imageList: remark.imageList,
+                                      description: remark.remarkDesc,
+                                      remarkId:remark.remarkId,
+                                      remarkDate: remark.remarkDate,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
+                                );
+                                refreshRemarkNotes();
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:http/http.dart' as http; // Import your model
 
 import '../Utils&Config/DownloadHelper.dart';
 import 'Attachment.dart';
+
 class TeacherDetailCard extends StatelessWidget {
   final String name;
   final String notesId;
@@ -17,6 +17,7 @@ class TeacherDetailCard extends StatelessWidget {
   final String note;
   final String subject;
   final String className;
+  final String sectionname;
   final String shortName;
   final String academic_yr;
   final List<Attachment> imageList;
@@ -28,6 +29,7 @@ class TeacherDetailCard extends StatelessWidget {
     required this.note,
     required this.subject,
     required this.className,
+    required this.sectionname,
     required this.imageList,
     required this.notesId,
     required this.shortName,
@@ -116,14 +118,36 @@ class TeacherDetailCard extends StatelessWidget {
       print('Failed to update read status');
     }
   }
+  Widget buildRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100.0,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 8.0),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 14.sp),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     updateReadStatus();
+    DateTime parsedDate = DateTime.parse(date);
+    String formatted_assignedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
 
     return WillPopScope(
       onWillPop: () async {
-        // Pop until reaching the HistoryTab route
         Navigator.pop(context, true);
         return false;
       },
@@ -141,7 +165,7 @@ class TeacherDetailCard extends StatelessWidget {
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
-              Navigator.pop(context, true); // Pass a result back to the previous screen
+              Navigator.pop(context, true);
             },
           ),
         ),
@@ -179,110 +203,13 @@ class TeacherDetailCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Name: ',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: name,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            buildRow('Class:', className+" "+sectionname),
                             SizedBox(height: 10.h),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Class: ',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: className,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            buildRow('Subject:', subject),
                             SizedBox(height: 10.h),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Subject: ',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: subject,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            buildRow('Date:', formatted_assignedDate),
                             SizedBox(height: 10.h),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Date: ',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: date,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
-                            Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Note: ',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: note,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            buildRow('Description:', note),
                             SizedBox(height: 20.h),
                             if (imageList.isNotEmpty)
                               Column(
@@ -298,37 +225,42 @@ class TeacherDetailCard extends StatelessWidget {
                                   ...imageList.map((attachment) {
                                     bool isFileNotUploaded = (attachment.fileSize / 1024) == 0.00;
                                     return ListTile(
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 0.0), // Adjust padding
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 0.0),
                                       leading: Icon(Icons.file_download),
                                       title: isFileNotUploaded
                                           ? Text(
-                                              'File is not uploaded properly',
-                                              style: TextStyle(
-                                                fontSize: 14.sp,
-                                                color: Colors.red,
-                                              ),
-                                            )
-                                          : Text(
-                                              attachment.imageName,
-                                              style: TextStyle(
-                                                fontSize: 14.sp,
-                                              ),
-                                            ),
-                                      subtitle: Text(
-                                        '${(attachment.fileSize / 1024).toStringAsFixed(2)} KB',
+                                        attachment.imageName +
+                                            '\nFile is not uploaded properly',
                                         style: TextStyle(
                                           fontSize: 14.sp,
+                                          color: Colors.red,
                                         ),
+                                      )
+                                          : Text(
+                                        attachment.imageName,
+                                        style: TextStyle(fontSize: 14.sp),
+                                      ),
+                                      subtitle: Text(
+                                        '${(attachment.fileSize / 1024).toStringAsFixed(2)} KB',
+                                        style: TextStyle(fontSize: 14.sp),
                                       ),
                                       onTap: () async {
                                         DateTime now = DateTime.now();
                                         String formattedDate = DateFormat('yyyy-MM-dd').format(now);
-
                                         String? projectUrl = await _getProjectUrl();
                                         if (projectUrl != null) {
                                           try {
-                                            String downloadUrl = '$projectUrl/uploads/daily_notes/$formattedDate/$notesId/${attachment.imageName}';
-                                            downloadFile(downloadUrl, context, attachment.imageName);
+                                            if (attachment.fileSize == 0) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('File not uploaded properly'),
+                                                ),
+                                              );
+                                            } else {
+                                              String downloadUrl =
+                                                  '$projectUrl/uploads/daily_notes/$formattedDate/$notesId/${attachment.imageName}';
+                                              downloadFile(downloadUrl, context, attachment.imageName);
+                                            }
                                           } catch (e) {
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
@@ -347,7 +279,7 @@ class TeacherDetailCard extends StatelessWidget {
                                     );
                                   }).toList(),
                                 ],
-                              )
+                              ),
                           ],
                         ),
                       ),
@@ -363,25 +295,35 @@ class TeacherDetailCard extends StatelessWidget {
   }
 
   static Future<bool> _permissionRequest() async {
-    PermissionStatus result;
-    result = await Permission.storage.request();
-    if (result.isGranted) {
-      return true;
-    } else {
-      return false;
-    }
+    PermissionStatus result = await Permission.storage.request();
+    return result.isGranted;
   }
 
   void downloadFile(String url, BuildContext context, String name) async {
-    var path = "/storage/emulated/0/Download/Evolvuschool/Parent/TeacherNote/$name";
-    var file = File(path);
-    var res = await get(Uri.parse(url));
-    file.writeAsBytes(res.bodyBytes);
+    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/TeacherNote");
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Download/Evolvuschool/Parent/TeacherNote/$name File downloaded successfully. '),
-      ),
-    );
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    var path = "${directory.path}/$name";
+    var file = File(path);
+
+    try {
+      var res = await http.get(Uri.parse(url));
+      await file.writeAsBytes(res.bodyBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File downloaded successfully: Download/Evolvuschool/Parent/TeacherNote'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file: $e'),
+        ),
+      );
+    }
   }
 }

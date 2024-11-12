@@ -103,97 +103,104 @@ class _HomeWorkNotePage extends State<HomeWorkNotePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        toolbarHeight: 50.h,
-        title: Text(
-          "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
-          style: TextStyle(fontSize: 14.sp, color: Colors.white),
-        ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Pop until reaching the HistoryTab route
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          toolbarHeight: 50.h,
+          title: Text(
+            "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
+            style: TextStyle(fontSize: 14.sp, color: Colors.white),
           ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        child: Column(
-          children: [
-            SizedBox(height: 80.h),
-            Text(
-              "Student HomeWork",
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+        body: Container(
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.pink, Colors.blue],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            SizedBox(height: 10.h),
-            Expanded(
-              child: FutureBuilder<List<Homework>>(
-                future: futureNotes,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No homework assigned'));
-                  } else {
-                    return ListView.builder(
-                      padding: EdgeInsets.only(top: 10.h),
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final note = snapshot.data![index];
-                        return Padding(
-                          padding: const EdgeInsets.all(3.0),
-                          child: HomeWorkNoteCard(
-                            subject: note.subjectName,
-                            assignedDate: note.startDate,
-                            submissionDate: truncateEndDate(note.endDate),
-                            status: note.homeworkStatus,
-                            readStatus: note.readStatus,
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => HomeWorkDetailCard(
-                                    shortName: shortName,
-                                    academic_yr: academic_yr,
-                                    subject: note.subjectName,
-                                    assignedDate: note.startDate,
-                                    submissionDate: truncateEndDate(note.endDate),
-                                    status: note.homeworkStatus,
-                                    homeworkId: note.homeworkId,
-                                    parentComment: note.parentComment,
-                                    className: note.className,
-                                    description: note.description,
-                                    imageList: note.imageList,
-                                    studentId: note.studentId,
-                                    comment_id: note.commentId,
-                                    Tcomment: note.comment,
-                                    publishDate: note.publishDate,
+          ),
+          child: Column(
+            children: [
+              SizedBox(height: 80.h),
+              Text(
+                "Student HomeWork",
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Expanded(
+                child: FutureBuilder<List<Homework>>(
+                  future: futureNotes,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text('No homework assigned'));
+                    } else {
+                      return ListView.builder(
+                        padding: EdgeInsets.only(top: 10.h),
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final note = snapshot.data![index];
+                          return Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: HomeWorkNoteCard(
+                              subject: note.subjectName,
+                              assignedDate: note.startDate,
+                              submissionDate: truncateEndDate(note.endDate),
+                              status: note.homeworkStatus,
+                              readStatus: note.readStatus,
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HomeWorkDetailCard(
+                                      shortName: shortName,
+                                      academic_yr: academic_yr,
+                                      subject: note.subjectName,
+                                      assignedDate: note.startDate,
+                                      submissionDate: truncateEndDate(note.endDate),
+                                      status: note.homeworkStatus,
+                                      homeworkId: note.homeworkId,
+                                      parentComment: note.parentComment,
+                                      className: note.className,
+                                      description: note.description,
+                                      imageList: note.imageList,
+                                      studentId: note.studentId,
+                                      comment_id: note.commentId,
+                                      Tcomment: note.comment,
+                                      publishDate: note.publishDate,
+                                    ),
                                   ),
-                                ),
-                              );
-                              refreshHomeworkNotes(); // Refresh notes after returning from the detail page
-                            },
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
+                                );
+                                refreshHomeworkNotes(); // Refresh notes after returning from the detail page
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -41,8 +41,10 @@ class NoticeInfo {
     required this.attachment,
   });
 }
+
 class NoticeDetailPage extends StatefulWidget {
   final NoticeInfo noticeInfo;
+
   NoticeDetailPage({required this.noticeInfo});
 
   @override
@@ -78,96 +80,128 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _showAttachments = !_showAttachments;
-        });
+    DateTime parsedDate = DateTime.parse(widget.noticeInfo.date);
+    String formatted_assignedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+
+    return WillPopScope(
+      onWillPop: () async {
+        // Pop until reaching the HistoryTab route
+        Navigator.pop(context, true);
+        return false;
       },
-      child: Container(
-        padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              blurRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildRow('Class:', widget.noticeInfo.classname),
-            SizedBox(height: 4.h),
-            buildRow('Date:', widget.noticeInfo.date),
-            SizedBox(height: 4.h),
-            buildRow('Subject:', widget.noticeInfo.subject),
-            SizedBox(height: 4.h),
-            buildRow('Description:', widget.noticeInfo.description),
-            SizedBox(height: 4.h),
-            if (widget.noticeInfo.attachment.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 8.h),
-                  Text(
-                    'Attachments:',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showAttachments = !_showAttachments;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildRow('Class:', widget.noticeInfo.classname),
+              SizedBox(height: 4.h),
+              buildRow('Date:', formatted_assignedDate),
+              SizedBox(height: 4.h),
+              buildRow('Subject:', widget.noticeInfo.subject),
+              SizedBox(height: 4.h),
+              buildRow('Description:', widget.noticeInfo.description),
+              SizedBox(height: 4.h),
+              if (widget.noticeInfo.attachment.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Attachments:',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  ...widget.noticeInfo.attachment.map((attachment) {
-                    bool isFileNotUploaded = (attachment.fileSize / 1024) == 0.00;
-                    return ListTile(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 0.0),
-                      leading: Icon(Icons.file_download, size: 25),
-                      title: isFileNotUploaded
-                          ? Text(
-                        'File is not uploaded properly',
-                        style: TextStyle(fontSize: 14.sp, color: Colors.red),
-                      )
-                          : Text(
-                        attachment.imageName,
-                        style: TextStyle(fontSize: 14.sp),
-                      ),
-                      subtitle: Text(
-                        '${(attachment.fileSize / 1024).toStringAsFixed(2)} KB',
-                        style: TextStyle(fontSize: 14.sp),
-                      ),
-                      onTap: () async {
-                        if (projectUrl.isNotEmpty) {
-                          try {
-                            String downloadUrl = projectUrl + 'uploads/notice/${widget.noticeInfo.date}/${widget.noticeInfo.noticeId}'
-                                '/${attachment.imageName}';
-                            downloadFile(downloadUrl, context,attachment.imageName);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('File downloaded successfully.'),
+                    ...widget.noticeInfo.attachment.map((attachment) {
+                      bool isFileNotUploaded =
+                          (attachment.fileSize / 1024) == 0.00;
+                      return ListTile(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 0.0),
+                        leading: Icon(Icons.file_download, size: 25),
+                        title: isFileNotUploaded
+                            ? Text(
+                                attachment.imageName +
+                                    '\nFile is not uploaded properly',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.red,
+                                ),
+                              )
+                            //   subtitle: Text(
+                            //   'File is not uploaded properly',
+                            //   style: TextStyle(
+                            //     fontSize: 14.sp,
+                            //   ),
+                            // )
+                            : Text(
+                                attachment.imageName,
+                                style: TextStyle(fontSize: 14.sp),
                               ),
-                            );
-                          } catch (e) {
+                        subtitle: Text(
+                          '${(attachment.fileSize / 1024).toStringAsFixed(2)} KB',
+                          style: TextStyle(fontSize: 14.sp),
+                        ),
+                        onTap: () async {
+                          if (projectUrl.isNotEmpty) {
+                            try {
+                              if (attachment.fileSize == 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('File not uploaded properly'),
+                                  ),
+                                );
+                              } else {
+                                String downloadUrl = projectUrl +
+                                    'uploads/notice/${widget.noticeInfo.date}/${widget.noticeInfo.noticeId}'
+                                        '/${attachment.imageName}';
+                                downloadFile(
+                                    downloadUrl, context, attachment.imageName);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('File downloaded successfully.'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file: $e'),
+                                ),
+                              );
+                            }
+                          } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Failed to download file: $e'),
+                                content: Text('Failed to retrieve project URL.'),
                               ),
                             );
                           }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to retrieve project URL.'),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  }).toList(),
-                ],
-              )
-          ],
+                        },
+                      );
+                    }).toList(),
+                  ],
+                )
+            ],
+          ),
         ),
       ),
     );
@@ -196,17 +230,35 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
       ],
     );
   }
-  void downloadFile(String url, BuildContext context,String name) async {
-    var path = "/storage/emulated/0/Download/Evolvuschool/Parent/Notice/$name";
+
+  void downloadFile(String url, BuildContext context, String name) async {
+    var directory =
+        Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Notice");
+
+    // Ensure the directory exists
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    var path = "${directory.path}/$name";
     var file = File(path);
-    var res = await get(Uri.parse(url));
-    file.writeAsBytes(res.bodyBytes);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Download/Evolvuschool/Parent/Notice/$name File downloaded successfully. '),
-      ),
-    );
+    try {
+      var res = await get(Uri.parse(url));
+      await file.writeAsBytes(res.bodyBytes);
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'File downloaded successfully: Download/Evolvuschool/Parent/Notice'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file: $e'),
+        ),
+      );
+    }
   }
 }

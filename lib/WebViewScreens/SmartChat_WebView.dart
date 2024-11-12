@@ -9,6 +9,7 @@ class WebViewPage extends StatefulWidget {
   final String shortName;
   final String classId;
   final String secId;
+  final String smartchat_url;
 
   WebViewPage({
     required this.studentId,
@@ -16,6 +17,7 @@ class WebViewPage extends StatefulWidget {
     required this.shortName,
     required this.classId,
     required this.secId,
+    required this.smartchat_url,
   });
 
   @override
@@ -29,13 +31,14 @@ class _WebViewPageState extends State<WebViewPage> {
   void initState() {
     super.initState();
 
+    print("WEBVIEW URL: " +
+        widget.smartchat_url+'?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(Uri.parse(
-          'https://sms.arnoldcentralschool.org/SACSv4test/index.php/admin/smart_chat_apk/?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
+          widget.smartchat_url+'?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
 
-    print("WEBVIEW URL: " +
-        'https://sms.arnoldcentralschool.org/SACSv4test/index.php/admin/smart_chat_apk/?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
   }
 
   @override

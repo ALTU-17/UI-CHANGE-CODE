@@ -502,14 +502,14 @@ class _StudentFormState extends State<StudentForm> {
         CropAspectRatioPreset.ratio4x3,
         CropAspectRatioPreset.ratio16x9
       ],
-      androidUiSettings: const AndroidUiSettings(
+      androidUiSettings:  AndroidUiSettings(
         toolbarTitle: 'Crop Image',
         toolbarColor: Colors.blue,
         toolbarWidgetColor: Colors.white,
         statusBarColor: Colors.blue,
         backgroundColor: Colors.white,
       ),
-      iosUiSettings: const IOSUiSettings(
+      iosUiSettings:  IOSUiSettings(
         minimumAspectRatio: 1.0,
       ),
     );

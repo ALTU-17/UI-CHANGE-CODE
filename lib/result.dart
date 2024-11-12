@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
+import 'ResultChart.dart';
 import 'main.dart';
 
 // Result model class to map the API response
@@ -473,6 +474,13 @@ class _ResultPageState extends State<ResultPage> {
                           print('viewReportCardVisible: $viewReportCardVisible');
                           print('resultChartVisible: $resultChartVisible');
 
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResultChart(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
+                                    ,classId: widget.classId,secId:widget.secId,className: widget.className),
+                              ),
+                            );
 
                         }),
                     ],

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'Utils&Config/api.dart';
 
@@ -63,11 +64,15 @@ class UserNamePage extends StatefulWidget {
 }
 
 class _LoginDemoState extends State<UserNamePage> {
+  late BuildContext _context;
+
   @override
   void initState() {
     super.initState();
     // email = TextEditingController(text: widget.emailstr);
     checkLoginStatus();
+    getVersion();
+
     // _getSchoolInfo();
 // Check login status when the login screen is initialized
   }
@@ -398,4 +403,65 @@ class _LoginDemoState extends State<UserNamePage> {
       ),
     );
   }
+
+  Future<void> getVersion() async {
+    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/lastest_version'); // Assuming Config.newLogin is your base URL
+
+    try {
+      final response = await post(url);
+      print('lastest_version => ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+
+        // Check if jsonData is a list and extract the first item if it is
+        if (jsonData is List && jsonData.isNotEmpty) {
+          final androidVersion = jsonData[0]['latest_version'] as String;
+          final releaseNotes = jsonData[0]['release_notes'] as String;
+          final forcedUpdate = jsonData[0]['forced_update'] as String;
+
+          if (androidVersion != null) {
+            final androidVersionNum = double.parse(androidVersion);
+            final localAndroidVersion = double.parse('2.40'); // Assuming local version
+
+            // Uncomment the following if-statement for version comparison if needed
+            if (localAndroidVersion < androidVersionNum) {
+              showDialog(
+                context: _context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('V 2.40'), // Local version title
+                    content: Text(releaseNotes),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                        },
+                        child: Text('Update',
+                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text('Cancel'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
+          }
+        } else {
+          print("Unexpected JSON format");
+        }
+      } else {
+        print('Error Response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
 }

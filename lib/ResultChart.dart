@@ -11,12 +11,10 @@ class ResultChart extends StatefulWidget {
   final String shortName;
   final String classId;
   final String secId;
-  final String Fname;
   final String className;
 
   ResultChart({
     required this.className,
-    required this.Fname,
     required this.studentId,
     required this.academicYr,
     required this.shortName,
@@ -49,12 +47,12 @@ class _ResultChartState extends State<ResultChart> {
     final url3 = url + 'student_marks_details_for_line_chart';
     final body = {
       'short_name': widget.shortName,
-      // 'class_id': widget.classId,
-      'class_id': '107',
-      // 'student_id': widget.studentId,
-      'student_id': '16713',
-      // 'academic_yr': widget.academicYr,
-      'academic_yr': '2023-2024',
+      'class_id': widget.classId,
+      // 'class_id': '24',
+      'student_id': widget.studentId,
+      // 'student_id': '2396',
+      'academic_yr': widget.academicYr,
+      // 'academic_yr': '2023-2024',
     };
 
     try {
@@ -386,13 +384,11 @@ class _ResultChartState extends State<ResultChart> {
           ),
           // Display each exam's score as a segment
           ...List.generate(scores.length, (index) {
-            int? previousScore = index > 0 && int.tryParse(scores[index - 1]) != null
-                ? int.parse(scores[index - 1])
-                : null;
+            int? previousValidScore = _getPreviousValidScore(scores, index);
             int? currentScore = int.tryParse(scores[index]);
 
             return currentScore != null
-                ? _buildBarSegment(currentScore, previousScore)
+                ? _buildBarSegment(currentScore, previousValidScore)
                 : _buildNABarSegment(); // Fallback for "N/A" scores
           }),
         ],
@@ -400,22 +396,15 @@ class _ResultChartState extends State<ResultChart> {
     );
   }
 
-  // Create a placeholder for "N/A" scores with gray color
-  Widget _buildNABarSegment() {
-    return Container(
-      width: 45,
-      height: 25,
-      margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      decoration: BoxDecoration(
-        color: Colors.grey,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        "N/A",
-        style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-    );
+// Helper function to find the most recent valid score before the current index
+  int? _getPreviousValidScore(List<String> scores, int currentIndex) {
+    for (int i = currentIndex - 1; i >= 0; i--) {
+      int? score = int.tryParse(scores[i]);
+      if (score != null) {
+        return score;
+      }
+    }
+    return null; // Return null if no valid score is found before the current index
   }
 
 // Helper widget to build each colored bar segment with gradient, shadow, and 3D effect
@@ -424,7 +413,7 @@ class _ResultChartState extends State<ResultChart> {
     BoxShadow shadow = BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6, offset: Offset(0, 3)); // Default shadow
 
     if (previousScore == null) {
-      // For the first term, always blue gradient
+      // For the first valid term, always blue gradient
       gradient = LinearGradient(
         colors: [Colors.blue.shade700, Colors.blue.shade300],
         begin: Alignment.topCenter,
@@ -481,6 +470,25 @@ class _ResultChartState extends State<ResultChart> {
       ),
     );
   }
+
+// Create a placeholder for "N/A" scores with gray color
+  Widget _buildNABarSegment() {
+    return Container(
+      width: 45,
+      height: 25,
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+      decoration: BoxDecoration(
+        color: Colors.grey,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        "N/A",
+        style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
 
   Widget _buildResultChart() {
     return Container(

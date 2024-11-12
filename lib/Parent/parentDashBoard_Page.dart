@@ -12,7 +12,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../Utils&Config/api.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
@@ -115,6 +117,9 @@ Future<void> fetchDashboardData(String url) async {
       paymentUrlShare = paymentUrl + "?reg_id=" + reg_id +
           "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
 
+      print('message1_url : ${data['message1_url']}');
+      print('message2_url : ${data['message2_url']}');
+
       print('Encrypted Username: $paymentUrlShare');
       print('Encrypted Username: $encryptedUsername');
       // Use these values as needed
@@ -165,17 +170,24 @@ String customUriEncode(String input, String allowedChars) {
   return encoded.toString();
 }
 
+
 class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   int pageIndex = 0;
+  late BuildContext _context;
 
   @override
   void initState() {
     super.initState();
     _getSchoolInfo();
+    getVersion();
+    getEvolvuUpdate(url); //get_evolvu_updates
+    getSchoolNews(url);   //get_news
+
   }
 
   @override
   Widget build(BuildContext context) {
+    _context = context;
     final pages = [
       StudentCard(
         onTap: (int index) {
@@ -189,7 +201,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
     ];
 
     return Scaffold(
-      backgroundColor: Colors.blue,
+      backgroundColor: Colors.blue.shade400,
       appBar: AppBar(
         title: Text(
           "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
@@ -201,7 +213,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           icon: const CircleAvatar(
             backgroundColor: Colors.white,
             radius: 18,
-            child: Icon(Icons.menu, color: Colors.red),
+            child: Icon(Icons.menu, color: Colors.pink),
           ),
           onPressed: () {
             showDialog(
@@ -228,88 +240,183 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           pages[pageIndex],
         ],
       ),
-      bottomNavigationBar: buildMyNavBar(context),
+      bottomNavigationBar: buildMyNavBar(),
     );
   }
 
-  Container buildMyNavBar(BuildContext context) {
+  Future<void>getSchoolNews(String url) async {
+    final getSchoolNewsurl = Uri.parse(url+'get_news'); // Assuming Config.newLogin is your base URL
+
+    try {
+      final response = await http.post(getSchoolNewsurl);
+      print('getSchoolNews => ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        print('getSchoolNews => ${response.body}');
+
+
+      } else {
+        print('getSchoolNews Error Response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('getSchoolNews Error: $e');
+    }
+  }
+
+  Future<void> getEvolvuUpdate(String url) async {
+    final get_evolvu_updatesurl = Uri.parse(url+'get_evolvu_updates'); // Assuming Config.newLogin is your base URL
+
+    try {
+      final response = await http.post(get_evolvu_updatesurl);
+      print('get_evolvu_updates => ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        print('get_evolvu_updates => ${response.body}');
+
+
+      } else {
+        print('Error Response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  Future<void> getVersion() async {
+    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/lastest_version'); // Assuming Config.newLogin is your base URL
+
+    try {
+      final response = await http.post(url);
+      print('lastest_version => ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        print('lastest_version => ${response.body}');
+
+        // Check if jsonData is a list and extract the first item if it is
+        if (jsonData is List && jsonData.isNotEmpty) {
+          final packageInfo = await PackageInfo.fromPlatform();
+          print('Current_version => ${packageInfo.version}');
+
+          final androidVersion = jsonData[0]['latest_version'] as String;
+          final releaseNotes = jsonData[0]['release_notes'] as String;
+          final forcedUpdate = jsonData[0]['forced_update'] as String;
+
+          if (androidVersion != null) {
+            final androidVersionNum = double.parse(androidVersion);
+            final localAndroidVersion = double.parse(packageInfo.version); // Assuming local version
+
+            // Uncomment the following if-statement for version comparison if needed
+            if (localAndroidVersion < androidVersionNum) {
+            showDialog(
+              context: _context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text('V ${packageInfo.version}'), // Local version title
+                  content: Text(releaseNotes),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                      },
+                      child: Text('Update',
+                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Cancel'),
+                    ),
+                  ],
+                );
+              },
+            );
+            }
+          }
+        } else {
+          print("Unexpected JSON format");
+        }
+      } else {
+        print('Error Response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  Widget buildMyNavBar() {
     return Container(
-      height: 75.h,
-      decoration: const BoxDecoration(
-          //color: Color.fromARGB(66, 165, 152, 152),
-          ),
-      child: SingleChildScrollView(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
-              // mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  enableFeedback: true,
-                  onPressed: () {
-                    setState(() {
-                      pageIndex = 0;
-                    });
-                  },
-                  icon: Icon(
-                    Icons.dashboard,
-                    color: pageIndex == 0
-                        ? Color.fromARGB(255, 236, 108, 99)
-                        : Colors.white,
-                    size: 30,
-                  ),
-                ),
-                Text('Dashboard', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-            Column(
-              //mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  enableFeedback: false,
-                  onPressed: () {
-                    setState(() {
-                      pageIndex = 1;
-                    });
-                  },
-                  icon: Icon(
-                    Icons.calendar_month,
-                    color: pageIndex == 1
-                        ? Color.fromARGB(255, 236, 108, 99)
-                        : Colors.white,
-                    size: 30,
-                  ),
-                ),
-                Text('Evants', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-            Column(
-              //mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  enableFeedback: false,
-                  onPressed: () {
-                    setState(() {
-                      pageIndex = 2;
-                    });
-                  },
-                  icon: Icon(
-                    Icons.person,
-                    color: pageIndex == 2
-                        ? Color.fromARGB(255, 236, 108, 99)
-                        : Colors.white,
-                    size: 30,
-                  ),
-                ),
-                Text('Profile', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ],
-        ),
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+          _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
+          _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 2), // Center icon
+          _buildNavItem(icon: Icons.person, label: 'Profile', index: 2),
+          _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 3),
+        ],
       ),
     );
   }
+
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+    bool isSelected = pageIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => pageIndex = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: isSelected ? Colors.blue.shade400 : Colors.grey, size: 26),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.blue.shade400 : Colors.grey,
+              fontSize: 10.sp,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCenterNavItem({required IconData icon, required int index}) {
+    bool isSelected = pageIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => pageIndex = index),
+      child: Container(
+        height: 45,
+        width: 45,
+        decoration: BoxDecoration(
+          color: Colors.blue.shade400,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.shade400.withOpacity(0.4),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 30),
+      ),
+    );
+  }
+
 }
 
 class CardItem {

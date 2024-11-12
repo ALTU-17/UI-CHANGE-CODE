@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:text_3d/text_3d.dart';
 import 'dart:math' as math;
 
 import '../Attendance/circleAttendance.dart';
@@ -26,6 +28,8 @@ class _StudentCardState extends State<StudentCard> {
   String regId = "";
   List<Map<String, dynamic>> examData = [];
 
+  bool isBirthdayToday = false;
+  List<String> birthdayStudentNames = [];
   Future<void> _fetchTodaysExams() async {
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
@@ -125,18 +129,41 @@ class _StudentCardState extends State<StudentCard> {
           List<dynamic> apiResponse = json.decode(response.body);
           setState(() {
             students = List<Map<String, dynamic>>.from(apiResponse);
+            final today = DateTime.now();
+
+            // Reset birthday list
+            birthdayStudentNames = [];
+            isBirthdayToday = false;
+
+            for (var student in students) {
+              String dobString = student['dob'];
+              String studentName = student['student_name'];
+              DateTime dob = DateTime.parse(dobString);
+
+              print('Checking DOB for: $studentName, DOB: $dobString');
+              if (dob.month == today.month && dob.day == today.day) {
+                isBirthdayToday = true;
+                birthdayStudentNames.add(studentName);
+                print('Today is the birthday of: $studentName');
+              }
+            }
+
+            // If no students have a birthday today, reset the birthday variables
+            if (!isBirthdayToday) {
+              birthdayStudentNames = [];
+            }
           });
         } else {
-          print(
-              'Failed to load students with status code: ${response.statusCode}');
+          print('Failed to load students with status code: ${response.statusCode}');
         }
       } catch (e) {
-        print('Error during http request: $e');
+        print('Error during HTTP request: $e');
       }
     } else {
       print('URL is empty, cannot make HTTP request.');
     }
   }
+
 
   @override
   void initState() {
@@ -174,7 +201,7 @@ class _StudentCardState extends State<StudentCard> {
                 ? Center(child: CircularProgressIndicator())
                 : ListView(
               children: [
-                // Display the student cards using ListView.builder
+
                 ListView.builder(
                   shrinkWrap:
                   true, // Important to wrap the builder within the ListView
@@ -203,6 +230,7 @@ class _StudentCardState extends State<StudentCard> {
                 ),
                 // Display the exam card once for all students
                 _buildExamCard(),
+                SizedBox(height: 0),
               ],
             ),
           ],
@@ -212,12 +240,113 @@ class _StudentCardState extends State<StudentCard> {
   }
 // Method to build the exam card that shows exams for all students with separate cards for each exam
 
-  Widget _buildExamCard() {
-    if (examData.isEmpty) return Container();
+  Widget BirthDayCard() {
+    // Combine all birthday names in the format "Name1 and Name2"
+    String combinedNames = birthdayStudentNames.join(" & ");
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () {
+              // Show a dialog with an image when the text is clicked
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text('Happy Birthday $combinedNames'),
+                    content: Image.asset('assets/hbd.jpg'), // Image inside the dialog
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog when the button is pressed
+                        },
+                        child: Text('Close'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click, // Pointer cursor for clickable effect
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300), // Smooth animation duration
+                curve: Curves.easeInOut, // Smooth easing curve for animation
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color.fromARGB(255, 242, 245, 245),
+                      Color.fromARGB(255, 248, 250, 252),
+                    ], // Gradient background
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20), // Rounded corners
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromARGB(255, 149, 214, 223)
+                          .withOpacity(0.6), // Glow effect
+                      spreadRadius: 5,
+                      blurRadius: 15,
+                      offset: const Offset(0, 8), // Shadow position for elevation effect
+                    ),
+                  ],
+                ),
+                width: 400, // Fixed width
+                height: 70, // Fixed height
+                // padding: const EdgeInsets.all(20), // Padding for better content layout
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.cake_sharp,
+                        color: Colors.pinkAccent,
+                        size: 45,
+                      ),
+                      const SizedBox(width: 15),
+                      Column( // Wrap Text in a Column
+                        crossAxisAlignment: CrossAxisAlignment.start, // Align text to the start
+                        children: [
+                          const Text(
+                            'Happy Birthday!!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.pinkAccent,
+                            ),
+                          ),
+                          Text( // Separate Text for combinedNames
+                            combinedNames,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.pink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExamCard() {
+
+    if (examData.isEmpty) return Container();
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
 
           // if(examData ==  '')
@@ -227,10 +356,13 @@ class _StudentCardState extends State<StudentCard> {
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
-          SizedBox(height: 8.h),
+
+
+          SizedBox(height: 5.h),
+
 
           // Display exams grouped by student name, with each exam in a separate card
           Column(
@@ -296,7 +428,7 @@ class _StudentCardState extends State<StudentCard> {
 
                         // Exam date
                         Expanded(
-                          flex: 1,
+                          flex: 0,
                           child: Text(
                             displayDate,
                             style: TextStyle(

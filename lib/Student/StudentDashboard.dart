@@ -722,7 +722,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
             context,
             MaterialPageRoute(
               builder: (context) => ResultChart(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
-                  ,classId: widget.classId,secId:widget.secId,Fname: Fname,className: widget.className),
+                  ,classId: widget.classId,secId:widget.secId,className: widget.className),
             ),
           );
         },

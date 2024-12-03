@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
+
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
+import 'package:evolvu/Student/StudentDashboard.dart';
 import 'package:evolvu/common/Common_dropDownFiled.dart';
-import 'package:evolvu/common/textFiledStu.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
@@ -15,8 +14,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../common/Mylable.dart';
-import '../common/common_textFiled.dart';
+import '../common/StuEditTextField.dart';
+import '../common/textFiledStu.dart';
 
 class StuInfoModal {
   String? studentId;
@@ -327,6 +326,8 @@ class _StudentFormState extends State<StudentForm> {
     }
   }
 
+  final List<String> admittedInClass =  [ 'Nursery','LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+
   Map<String, String> specsMapping = {
     'Y': 'YES',
     'N': 'NO',
@@ -349,6 +350,7 @@ class _StudentFormState extends State<StudentForm> {
     'Private Van',
     'Self'
   ];
+  // final List<String> admittedInClass = ['LKG', 'UKG', 'Private Van', 'Self'];
 
   // Values sent to the server
   final Map<String, String> valueMapping = {
@@ -357,8 +359,9 @@ class _StudentFormState extends State<StudentForm> {
     'Private Van': 'Van',
     'Self': 'Self'
   };
+  String? selectedTrans = 'Select'; // Set a default valid value
   String? selectedHouseName = '';
-  String? selectedTrans = '';
+  // Update based on your options
 
   String? selectedHouseId; // Store short name
   List<Map<String, String>> houses = [];
@@ -451,7 +454,7 @@ class _StudentFormState extends State<StudentForm> {
     print('get_student body: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('Response ```````11111111111```````');
+      print('Response 11111111111');
       // Assuming 'response' contains the API response
       List<dynamic> apiResponse = json.decode(response.body);
 
@@ -465,28 +468,27 @@ class _StudentFormState extends State<StudentForm> {
     return null;
   }
 
-  Future uploadImage(ImageSource source) async {
-    final image = await ImagePicker().pickImage(
-      source: source,
-    );
+  Future<void> uploadImage(ImageSource source) async {
+    final image = await ImagePicker().pickImage(source: source);
     if (image == null) return;
 
-    // Convert the image path to a File
     File imageFile = File(image.path);
 
     var croppedFile = await cropImage(imageFile);
 
-    // Update the file variable with the cropped image
-    setState(() {
-      file = croppedFile;
-    });
-    // Upload the cropped image to the server
-    imageUrl = await uploadImageToServer(croppedFile!);
+    if (croppedFile != null) {
+      String base64Image = base64Encode(croppedFile.readAsBytesSync());
 
-    // Set the image using the received URL
-    setState(() {
-      imageUrl = imageUrl;
-    });
+      setState(() {
+        file = croppedFile;
+      });
+
+      uploadImageToServer(croppedFile, base64Image);
+
+      setState(() {
+        imageUrl = imageUrl;
+      });
+    }
   }
 
   // Function to crop the selected image using the image_cropper package
@@ -502,14 +504,14 @@ class _StudentFormState extends State<StudentForm> {
         CropAspectRatioPreset.ratio4x3,
         CropAspectRatioPreset.ratio16x9
       ],
-      androidUiSettings:  AndroidUiSettings(
+      androidUiSettings: const AndroidUiSettings(
         toolbarTitle: 'Crop Image',
         toolbarColor: Colors.blue,
         toolbarWidgetColor: Colors.white,
         statusBarColor: Colors.blue,
         backgroundColor: Colors.white,
       ),
-      iosUiSettings:  IOSUiSettings(
+      iosUiSettings: const IOSUiSettings(
         minimumAspectRatio: 1.0,
       ),
     );
@@ -522,30 +524,74 @@ class _StudentFormState extends State<StudentForm> {
     }
   }
 
-  Future<String> uploadImageToServer(File croppedImage) async {
-    // Create a multipart request using Dio package
-
+  Future<String> uploadImageToServer(File croppedImage, String base64Image) async {
     try {
-      // Make POST request to upload image
-      http.Response uploadresponse = await http.post(
-        Uri.parse("${url}get_student_profile_images_details"),
-        body: {'student_id': widget.studentId, 'short_name': shortName},
+      var response = await http.post(
+        Uri.parse("${url}upload_student_profile_image_into_folder"),
+        body: {
+          'student_id': widget.studentId,
+          'short_name': shortName,
+          'filename': widget.studentId+".jpg",
+          'doc_type_folder': 'student_image',
+          'filedata': base64Image,
+        },
       );
-      print('image_urlResponse body: ${uploadresponse.body}');
-      // Check if response is successful
-      if (uploadresponse.statusCode == 200) {
-        // Parse the response JSON and extract image URL
-        String uploadresponsestr = uploadresponse.body;
-        Map<String, dynamic> uploadresponsedata =
-        json.decode(uploadresponsestr);
-        imageUrl = uploadresponsedata["image_url"];
+
+      if (response.statusCode == 200) {
+        print("Error uploading image: $shortName");
+        // print("Error uploading image: $base64Image");
+        print("Error uploading image: $base64Image");
+
+        // Assuming the server responds with a JSON containing the image URL
+        var responseBody = jsonDecode(response.body);
+        print("Error uploading image: $responseBody");
+        // Navigator.pop(context);
+
+        Fluttertoast.showToast(
+          msg: "Profile Picture updated successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (_) => StudentActivityPage(
+        //     reg_id: reg_id,
+        //     shortName: shortName,
+        //     studentId: widget.studentId,
+        //     academicYr: academic_yrstr,
+        //     url: url,
+        //     firstName:F,
+        //     rollNo: widget.rollNo,
+        //     className: widget.className,
+        //     cname: widget.cname,
+        //     secname: widget.secname,
+        //     classTeacher: widget.classTeacher,
+        //     gender: widget.gender,
+        //     classId: widget.classId,
+        //     secId: widget.secId,
+        //     attendance_perc: attendance,          )),
+        // );
+
         return imageUrl;
+
       } else {
-        // Handle error
+        Fluttertoast.showToast(
+          msg: "Profile Picture Not updated successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
         throw Exception('Failed to upload image');
       }
     } catch (e) {
-      // Handle Dio errors
       print("Error uploading image: $e");
       throw Exception('Failed to upload image');
     }
@@ -614,38 +660,36 @@ class _StudentFormState extends State<StudentForm> {
     }
   }
 
+
+
   _init() async {
     childInfo = await _getSchoolInfo(widget.studentId);
+
     setState(() {
       fetchHouseData();
     });
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 120.h,
-      child: Padding(
-        padding: const EdgeInsets.all(6.0),
-        child: Card(
-          child: Container(
-            color: Colors.transparent,
-            padding: const EdgeInsets.all(35),
-            child: isLoading
-                ? Center(
-              child:
-              CircularProgressIndicator(), // Show loading indicator while fetching data
-            )
-                : childInfo != null
-                ? SingleChildScrollView(
-              child: FormBuilder(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(35),
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : childInfo != null
+              ? SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
                     SizedBox(
                       height: 200.h,
                       width: 200.w,
                       child: Stack(
+                        
                         children: [
                           Positioned(
                             height: 150.w,
@@ -653,14 +697,11 @@ class _StudentFormState extends State<StudentForm> {
                             right: 0,
                             top: 10.h,
                             child: CircleAvatar(
-                              radius: 75
-                                  .w, // Adjust the radius to make the image circular
-                              backgroundColor: Colors
-                                  .grey[200], // Placeholder color
+                              radius: 75.w, // Adjust the radius to make the image circular
+                              backgroundColor: Colors.grey[200], // Placeholder color
                               backgroundImage: imageUrl.isNotEmpty
                                   ? NetworkImage(
-                                imageUrl +
-                                    '?timestamp=${DateTime.now().millisecondsSinceEpoch}',
+                                imageUrl + '?timestamp=${DateTime.now().millisecondsSinceEpoch}',
                               )
                                   : AssetImage(
                                 childInfo?.gender == 'M'
@@ -697,142 +738,141 @@ class _StudentFormState extends State<StudentForm> {
                       height: 15,
                     ),
 
-                    CustomTextField(
+                    StuTextField(
                       label: 'First Name',
                       name: 'First Name',
                       readOnly: true,
+                      // isRequired: true,
+                      // isRequired: true,
                       initialValue: childInfo?.firstName,
                     ),
 
-                    CustomTextField(
+                    StuTextField(
                       label: 'Middle Name',
                       name: 'Middle Name',
                       readOnly: true,
                       initialValue: childInfo?.midName,
+                      //  isRequired: true,
                     ),
 
-                    CustomTextField(
+                    StuTextField(
                       label: 'Last Name',
                       name: 'Last Name',
                       readOnly: true,
                       initialValue: childInfo?.lastName,
+                      // isRequired: true,
                     ),
 
-                    CustomTextField(
+                    StuTextField(
                       label: 'Date Of Birth',
                       name: 'Date Of Birth',
                       readOnly: true,
+                      //isRequired: true,
                       initialValue: childInfo?.dob,
                     ),
 
                     // Date Of Admission Field
-                    CustomTextField(
+                    StuTextField(
                       label: 'Date Of Admission',
                       name: 'Date Of Admission',
                       readOnly: true,
+                      // isRequired: true,
                       initialValue: childInfo?.admissionDate,
                     ),
 
                     // GRN NO. CustomTextField
-                    CustomTextField(
+                    StuTextField(
                       label: 'GRN NO.',
                       name: 'GRN NO.',
                       readOnly: true,
+                      //isRequired: true,
                       initialValue: childInfo?.regNo,
                     ),
 
                     // Student ID NO. Field
-                    CustomTextField(
+                    StuTextField(
                       label: 'Student ID NO.',
                       name: 'Student ID NO.',
                       readOnly: true,
+                      // isRequired: true,
                       initialValue: childInfo?.studIdNo,
                     ),
 
-// Add some vertical space between the two fields
-
-// Student ID NO. CustomTextField
-                    // CustomTextField(
-                    //   label: 'Student ID NO.',
-                    //   name: 'Student ID NO.',
-                    //   readOnly: true,
-                    //   initialValue: childInfo?.studIdNo,
-                    // ),
-
-                    CustomTextField(
+                    StuTextField(
                       label: 'Udise Pen No.',
                       name: 'Udise Pen No.',
                       readOnly: true,
+                      // isRequired: true,
                       initialValue: childInfo?.udisePenNo,
                     ),
-                    // Space between the two fields
 
-                    // Student Aadhaar No. Field
-                    StuTextField(
-                      label: 'Student Aadhaar NO.',
-                      name: 'Student Aadhaar NO.',
-                      readOnly: false,
-                      initialValue: childInfo?.stuAadhaarNo ?? '',
+                    StuEditTextField(
+                      labelText: 'Student Aadhaar No.',
+                      initialValue: childInfo?.stuAadhaarNo,
+                      keyboardType: TextInputType.number,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.stuAadhaarNo = value;
                         });
                       },
                     ),
-                    ////
-                    // TextFormField(
-                    //   initialValue: childInfo?.stuAadhaarNo,
-                    //   decoration: const InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Student Aadhaar NO.',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.stuAadhaarNo = value;
-                    //     });
-                    //   },
-                    // ),
 
                     // Display the full house name
                     // if (childInfo?.house != null)
                     //   Text('House: ${getFullHouseName(childInfo!.house)}'),
 
-                    CustomTextField(
-                      label: 'Admitted In Class',
-                      name: 'Admitted In Class',
-                      initialValue: childInfo?.admissionClass,
-                    ),
+                LabeledDropdown(
+                  label:
+                  "Admitted In Class", // Keep the label static
+                  options: [ 'Nursery','LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'],
+
+                  selectedValue:
+                  getGender(childInfo!.admissionClass),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      if (newValue != null) {
+                        childInfo?.admissionClass = newValue;
+                      }
+                    });
+                  },
+                ),
+
                     SizedBox(
                         width: 16.w), // Space between the two fields
                     // Class Field
-                    CustomTextField(
+                    StuTextField(
                       initialValue: widget?.cname,
                       label: 'Class',
                       name: 'Class',
+                      // isRequired: true,
                       readOnly: true,
                     ),
-                    CustomTextField(
+                    StuTextField(
                       initialValue: widget?.secname,
                       readOnly: true,
                       label: 'Division',
+                      //  isRequired: true,
                       name: 'Division',
                     ),
 
-                    CustomTextField(
+                    StuTextField(
                       readOnly: true,
                       initialValue: childInfo?.rollNo,
                       label: 'Roll No.',
                       name: 'Roll No.',
+                      //  isRequired: true,
                     ),
+
                     LabeledDropdown(
-                      label: "Gender", // Keep the label static
+                      label: "Gender",
                       options: ['Male', 'Female'],
-                      selectedValue: getGender(childInfo!
-                          .gender), // Show the selected gender inside the dropdown
+                      selectedValue: getGender(childInfo?.gender) ??
+                          'Male', // Default to a valid option
                       onChanged: (String? newValue) {
                         setState(() {
                           if (newValue != null) {
-                            childInfo?.gender = newValue;
+                            childInfo?.gender =
+                            newValue == 'Male' ? 'M' : 'F';
                           }
                         });
                       },
@@ -862,39 +902,31 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.bloodGroup,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Blood Group',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.bloodGroup = value;
-                    //     });
-                    //   },
-                    // ),
-
                     LabeledDropdown(
                       label: 'House', // Static label
-                      options: houseNameMapping.values.toList(), // List of house names
-                      selectedValue: selectedHouseName, // Display the selected house name inside the dropdown
+                      options: houseNameMapping.values
+                          .toList(), // List of house names
+                      selectedValue:
+                      selectedHouseName, // Display the selected house name inside the dropdown
                       onChanged: (String? newValue) {
                         setState(() {
                           if (newValue != null) {
-                            selectedHouseName = newValue; // Update the selected house name
+                            selectedHouseName =
+                                newValue; // Update the selected house name
                             selectedHouseId = houses.firstWhere(
-                                    (house) => house['house_name'] == newValue)['house_id']; // Update the house ID based on the selected house name
+                                    (house) =>
+                                house['house_name'] ==
+                                    newValue)[
+                            'house_id']; // Update the house ID based on the selected house name
                           }
                         });
                       },
                     ),
 
-                    StuTextField(
-                      label: 'Nationality',
-                      name: 'Nationality',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Nationality',
                       initialValue: childInfo?.nationality ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.nationality = value;
@@ -902,24 +934,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.nationality,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Nationality',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.nationality = value;
-                    //     });
-                    //   },
-                    // ),
-
-                    StuTextField(
-                      label: 'Address',
-                      name: 'Address',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Address',
                       initialValue: childInfo?.permantAdd ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.permantAdd = value;
@@ -927,23 +945,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.permantAdd,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Address',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.permantAdd = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'City',
-                      name: 'City',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'City',
                       initialValue: childInfo?.city ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.city = value;
@@ -951,11 +956,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    StuTextField(
-                      label: 'State',
-                      name: 'State',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'State',
                       initialValue: childInfo?.state ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.state = value;
@@ -963,23 +967,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.state,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'State',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.state = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Pincode',
-                      name: 'Pincode',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Pincode',
                       initialValue: childInfo?.pincode ?? '',
+                      keyboardType: TextInputType.number,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.pincode = value;
@@ -987,11 +978,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    StuTextField(
-                      label: 'Birth Place',
-                      name: 'Birth Place',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Birth Place',
                       initialValue: childInfo?.birthPlace ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.birthPlace = value;
@@ -999,23 +989,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.birthPlace,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Birth Place',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.birthPlace = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Mother Tongue',
-                      name: 'Mother Tongue',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Mother Tongue',
                       initialValue: childInfo?.motherTongue ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.motherTongue = value;
@@ -1027,117 +1004,54 @@ class _StudentFormState extends State<StudentForm> {
                     StuTextField(
                       label: 'Religion',
                       name: 'Religion',
-                      readOnly: false,
-                      initialValue: childInfo?.religion ?? '',
-                      onChanged: (value) {
-                        setState(() {
-                          childInfo?.religion = value;
-                        });
-                      },
+                      readOnly: true,
+                      // isRequired: true,
+                      // isRequired: true,
+                      initialValue: childInfo?.religion,
                     ),
-
-                    // TextFormField(
-                    //   initialValue: childInfo?.religion,
-                    //   readOnly: true,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Religion',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.religion = value;
-                    //     });
-                    //   },
-                    // ),
                     StuTextField(
                       label: 'Caste',
                       name: 'Caste',
-                      readOnly: false,
-                      initialValue: childInfo?.caste ?? '',
-                      onChanged: (value) {
-                        setState(() {
-                          childInfo?.caste = value;
-                        });
-                      },
+                      readOnly: true,
+                      // isRequired: true,
+                      // isRequired: true,
+                      initialValue: childInfo?.caste,
                     ),
-
-                    // Category TextField
                     StuTextField(
                       label: 'Category',
                       name: 'Category',
-                      readOnly: false,
-                      initialValue: childInfo?.category ?? '',
-                      onChanged: (value) {
-                        setState(() {
-                          childInfo?.category = value;
-                        });
-                      },
+                      readOnly: true,
+                      // isRequired: true,
+                      //isRequired: true,
+                      initialValue: childInfo?.category,
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.category,
-                    //   readOnly: true,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Category',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.category = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Emergency Name',
-                      name: 'Emergency Name',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Emergency Name',
                       initialValue: childInfo?.emergencyName ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.emergencyName = value;
                         });
                       },
                     ),
-                    // TextFormField(
-                    //   initialValue: childInfo?.emergencyName,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Emergency Name',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.emergencyName = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Emergency Address',
-                      name: 'Emergency Address',
-                      readOnly: false,
+
+                    StuEditTextField(
+                      labelText: 'Emergency Address',
                       initialValue: childInfo?.emergencyAdd ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.emergencyAdd = value;
                         });
                       },
                     ),
-                    // TextFormField(
-                    //   initialValue: childInfo?.emergencyAdd,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Emergency Address',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.emergencyAdd = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Emergency Contact',
-                      name: 'Emergency Contact',
-                      readOnly: false,
+
+                    StuEditTextField(
+                      labelText: 'Emergency Contact',
                       initialValue: childInfo?.emergencyContact ?? '',
+                      keyboardType: TextInputType.number,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.emergencyContact = value;
@@ -1145,11 +1059,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    StuTextField(
-                      label: 'Allergies(If ANY)',
-                      name: 'Allergies(If ANY)',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Allergies(If ANY)',
                       initialValue: childInfo?.allergies ?? '',
+                      keyboardType: TextInputType.name,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.allergies = value;
@@ -1157,60 +1070,10 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.emergencyContact,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Emergency Contact',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.emergencyContact = value;
-                    //     });
-                    //   },
-                    // ),
-                    // StuTextField(
-                    //   label: 'Nationality',
-                    //   name: 'Nationality',
-                    //   readOnly: false,
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.nationality = value;
-                    //     });
-                    //   },
-                    // ),
-
-                    //////////////
-
-                    // StuTextField(
-                    //   label: 'Allergies(If ANY)',
-                    //   name: 'Allergies(If ANY)',
-                    //   readOnly: false,
-                    //   initialValue: childInfo?.allergies ?? '',
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.allergies = value;
-                    //     });
-                    //   },
-                    // ),
-
-                    // TextFormField(
-                    //   initialValue: childInfo?.allergies,
-                    //   decoration: InputDecoration(
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Allergies(If ANY)',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.allergies = value;
-                    //     });
-                    //   },
-                    // ),
-                    StuTextField(
-                      label: 'Height',
-                      name: 'Height',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Height',
                       initialValue: childInfo?.height ?? '',
+                      keyboardType: TextInputType.number,
                       onChanged: (value) {
                         setState(() {
                           childInfo?.height = value;
@@ -1218,45 +1081,40 @@ class _StudentFormState extends State<StudentForm> {
                       },
                     ),
 
-                    StuTextField(
-                      label: 'Weight',
-                      name: 'Weight',
-                      readOnly: false,
+                    StuEditTextField(
+                      labelText: 'Weight',
                       initialValue: childInfo?.weight ?? '',
+                      keyboardType: TextInputType.number,
                       onChanged: (value) {
                         setState(() {
-                          childInfo?.weight =
-                              value; // Corrected this line, it was updating 'nationality' instead of 'weight'
+                          childInfo?.weight = value;
                         });
                       },
                     ),
 
-                    // TextFormField(
-                    //   initialValue: childInfo?.weight,
-                    //   decoration: InputDecoration(
-                    //     hintText: "50",
-                    //     border: UnderlineInputBorder(),
-                    //     labelText: 'Weight',
-                    //   ),
-                    //   onChanged: (value) {
-                    //     setState(() {
-                    //       childInfo?.weight = value;
-                    //     });
-                    //   },
-                    // ),
                     LabeledDropdown(
-                      label: 'Transport Mode', // Static label
-                      options: displayOptions, // Dropdown options
-                      selectedValue:
-                      selectedTrans, // The currently selected transport mode
+                      label: 'Transport Mode',
+                      options: displayOptions,
+                      selectedValue: selectedTrans ??
+                          'Select', // Default to 'Select' if null
                       onChanged: (String? newValue) {
                         setState(() {
-                          if (newValue != null) {
-                            selectedTrans =
-                                newValue; // Update the selected transport mode
-                            childInfo?.transportMode = valueMapping[
-                            newValue]!; // Map the selected value to server-side transport mode
+                          if (newValue != null &&
+                              newValue != 'Select') {
+                            selectedTrans = newValue;
+                            childInfo?.transportMode =
+                                valueMapping[newValue] ?? '';
                           }
+                        });
+                      },
+                    ),
+                    StuEditTextField(
+                      labelText: '',
+                      initialValue: childInfo?.transportMode ?? '',
+                      keyboardType: TextInputType.name,
+                      onChanged: (value) {
+                        setState(() {
+                          childInfo?.transportMode = value;
                         });
                       },
                     ),
@@ -1315,20 +1173,24 @@ class _StudentFormState extends State<StudentForm> {
                               'vehicle_no':
                               childInfo?.vehicleNo ?? '',
                               'has_specs': childInfo?.hasSpecs ?? '',
-                              'birth_place': childInfo?.birthPlace ?? '',
-                              'mother_tongue': childInfo?.motherTongue ?? '',
+                              'birth_place':
+                              childInfo?.birthPlace ?? '',
+                              'mother_tongue':
+                              childInfo?.motherTongue ?? '',
                               'stud_id_no': childInfo?.studIdNo ?? '',
-                              'admission_class': childInfo?.admissionClass ?? '',
+                              'admission_class':
+                              childInfo?.admissionClass ?? '',
                               'allergies': childInfo?.allergies ?? '',
                               'height': childInfo?.height ?? '',
                               'weight': childInfo?.weight ?? '',
                               'house': selectedHouseId ?? '',
-                              'transport_mode': childInfo?.transportMode ?? '',
+                              'transport_mode':
+                              childInfo?.transportMode ?? '',
                             },
                           );
 
                           // print('Response body: $qrCode $academic_yr $formattedTime $formattedDate');
-                          print('Response body: ${response.body} $selectedHouseId');
+                          print('Response body: ${response.body}');
                           print(
                               'childInfo?.stuAadhaarNo33##### body: ${childInfo?.allergies}+${childInfo?.gender}+${childInfo?.transportMode}');
 
@@ -1374,17 +1236,15 @@ class _StudentFormState extends State<StudentForm> {
                       ),
                     ),
                     // Continue adding more fields or other widgets
-                  ],
-                ),
-              ),
-            )
-                : Center(
-              child: Text(
-                'No visitors found',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+              ],
+            ),
+          )
+              : const Center(
+            child: Text(
+              'No visitors found',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),

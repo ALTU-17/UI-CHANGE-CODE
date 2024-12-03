@@ -30,6 +30,7 @@ class _ResultChartState extends State<ResultChart> {
   int touchedIndex = -1;
   List<PieChartSectionData> chartSections = [];
   String centerText = "Loading...";
+  String centerText_lc = "Loading...";
 
   List<BarChartGroupData> barGroups = [];
   List<Map<String, dynamic>> barData = [];
@@ -77,12 +78,12 @@ class _ResultChartState extends State<ResultChart> {
         });
       } else {
         setState(() {
-          centerText = "Result not found";
+          centerText_lc = "Result not found";
         });
       }
     } catch (e) {
       setState(() {
-        centerText = "Error fetching line chart data"; // Error handling
+        centerText_lc = "Line chart data is empty"; // Error handling
       });
     }
   }
@@ -284,7 +285,7 @@ class _ResultChartState extends State<ResultChart> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            centerText,
+            centerText_lc,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

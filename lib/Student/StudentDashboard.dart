@@ -108,7 +108,13 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   String paymentUrl="";
   String paymentUrlShare="";
   String smartchat_url="";
+  int receipt_button=0;
+  int online_fees_payment=0;
+  int smartchat=0;
   String encryptedUsername="";
+
+  int pageIndex = 0;
+  late BuildContext _context;
 
   @override
   void initState() {
@@ -264,6 +270,9 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         // Extract the required fields
         receiptUrl = data['receipt_url'];
         receiptButton = data['receipt_button'];
+        receipt_button = data['receipt_button'];
+        smartchat = data['smartchat'];
+        online_fees_payment = data['online_fees_payment'];
         paymentUrl = data['payment_url'];
         smartchat_url = data['smartchat_url'];
         String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
@@ -450,6 +459,8 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    _context = context;
+
     refreshDash();
     final List<CardItem> cardItems = [
       CardItem(
@@ -685,7 +696,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
-
+      if(smartchat == 1)
       CardItem(
         imagePath: 'assets/smartchat.png',
         title: 'Smart Chat',
@@ -728,6 +739,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
+      if(online_fees_payment == 1)
       CardItem(
         imagePath: 'assets/cashpayment.png',
         title: 'Fees Payment',
@@ -736,7 +748,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
             context,
             MaterialPageRoute(
               builder: (context) => PaymentWebview(
-                  regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr),
+                  regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr,receipt_button:receipt_button),
             ),
           );
         },
@@ -760,7 +772,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         future: _getSchoolInfo(),
         builder: (context, snapshot) {
           return Scaffold(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.blue,
             extendBodyBehindAppBar: true,
             appBar: AppBar(
               title: Text(
@@ -874,40 +886,6 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                                       ],
                                     ),
                                   ),
-
-                                  // Attendance Section
-                                  // Padding(
-                                  //   padding: const EdgeInsets.fromLTRB(0,0,10,5),
-                                  //   child: Column(
-                                  //     crossAxisAlignment: CrossAxisAlignment.center,
-                                  //     children: [
-                                  //       SizedBox(
-                                  //         child: attendance.isNotEmpty && double.tryParse(attendance) != null
-                                  //             ? CircularAttendanceIndicator2(
-                                  //           percentage:   double.parse(attendance),
-                                  //         ): CircularAttendanceIndicator2(
-                                  //           percentage: 0, // Default to 0 if data is not available
-                                  //         ),
-                                  //       ),
-                                  //       SizedBox(height: 4.h),
-                                  //       Text(
-                                  //         '$attendance%',
-                                  //         style: TextStyle(
-                                  //           fontSize: 14.sp,
-                                  //           fontWeight: FontWeight.bold,
-                                  //           color: Colors.blue,
-                                  //         ),
-                                  //       ),
-                                  //       Text(
-                                  //         'Attendance',
-                                  //         style: TextStyle(
-                                  //           fontSize: 10.sp,
-                                  //           color: Colors.grey[700],
-                                  //         ),
-                                  //       ),
-                                  //     ],
-                                  //   ),
-                                  // ),
                                 ],
                               ),
                             ),
@@ -1051,22 +1029,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                 ),
               ],
             ),
-            // bottomNavigationBar: BottomNavigationBar(
-            //   items: const <BottomNavigationBarItem>[
-            //     BottomNavigationBarItem(
-            //       icon: Icon(Icons.dashboard),
-            //       label: 'Dashboard',
-            //     ),
-            //     BottomNavigationBarItem(
-            //       icon: Icon(Icons.calendar_today),
-            //       label: 'Calendar',
-            //     ),
-            //     BottomNavigationBarItem(
-            //       icon: Icon(Icons.person),
-            //       label: 'Profile',
-            //     ),
-            //   ],
-            // ),
+
             bottomNavigationBar: buildMyNavBar(context),
           );
         },
@@ -1082,74 +1045,56 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     }
     return name; // If there's no second space, return the original name
   }
-}
+
 Container buildMyNavBar(BuildContext context) {
   return Container(
-      height: 80.h,
-      decoration: const BoxDecoration(
-        color: Colors.blue,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                enableFeedback: true,
-                onPressed: () {
-                  Navigator.of(context).pop(0);
-                },
-                icon: const Icon(
-                  Icons.dashboard,
-                  color: Colors.white,
+    margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(30),
+      boxShadow: [
+        BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+        _buildNavItem(icon: Icons.calendar_month, label: 'Calendar', index: 1),
+        _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
+        _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 3),
+      ],
+    ),
+  );
+}
 
-                  size: 30,
-                ),
-              ),
-              Text('Dashboard', style: TextStyle(color: Colors.white)),
-            ],
+Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+  bool isSelected = false; // Adjust logic if you need to handle selection
+
+  return GestureDetector(
+    onTap: () {
+      Navigator.of(context).pop(index); // Assuming this handles navigation
+    },
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: isSelected ? Colors.blue.shade400 : Colors.grey,
+          size: 26,
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.blue.shade400 : Colors.grey,
+            fontSize: 10.sp,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                enableFeedback: false,
-                onPressed: () {
-                  Navigator.of(context).pop(1);
-
-                },
-                icon: const Icon(
-                  Icons.calendar_month,
-                  color: Colors.white,
-
-                  size: 30,
-                ),
-              ),
-              const Text('Calendar', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                enableFeedback: false,
-                onPressed: () {
-                  Navigator.of(context).pop(2);
-
-                },
-                icon: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-
-                  size: 30,
-                ),
-              ),
-              Text('Profile', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-        ],
-      ),
-      );
-      }
-
+        ),
+      ],
+    ),
+  );
+}
+}

@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../Utils&Config/api.dart';
+import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
@@ -38,7 +39,9 @@ String durl = "";
 
 String paymentUrl="";
 String paymentUrlShare="";
+int receipt_button=0;
 String receiptUrl = "";
+
 String smartchat_url="";
 String username = "";
 
@@ -74,7 +77,7 @@ Future<void> _getSchoolInfo() async {
       url = parsedData['url'];
       durl = parsedData['project_url'];
 
-      fetchDashboardData(url);
+      // fetchDashboardData(url);
 
       print('Short Name: $shortName');
       print('URL: $url');
@@ -87,87 +90,97 @@ Future<void> _getSchoolInfo() async {
   }
 }
 
-Future<void> fetchDashboardData(String url) async {
-  final url1 = Uri.parse(url +'show_icons_parentdashboard_apk');
-  // print('Receipt URL: $shortName');
+  Future<void> fetchDashboardData(String url) async {
+    final url1 = Uri.parse(url +'show_icons_parentdashboard_apk');
+    // print('Receipt URL: $shortName');
 
-  try {
-    final response = await http.post(url1,
-      body: {'short_name': shortName},
-    );
+    try {
+      final response = await http.post(url1,
+        body: {'short_name': shortName},
+      );
 
-    if (response.statusCode == 200) {
-      print('response.body URL: ${response.body}');
+      if (response.statusCode == 200) {
+        print('response.body URL: ${response.body}');
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
+        final Map<String, dynamic> data = jsonDecode(response.body);
 
-      // Extract the required fields
-      receiptUrl = data['receipt_url'];
-      paymentUrl = data['payment_url'];
-      smartchat_url = data['smartchat_url'];
-      String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
+        // Extract the required fields
+        // message1_url = data['message1_url'];
+        // message2_url = data['message2_url'];
 
-      String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
-      username = username;
+        receipt_button = data['receipt_button'];
+        receiptUrl = data['receipt_url'];
+        paymentUrl = data['payment_url'];
+        smartchat_url = data['smartchat_url'];
+        String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
 
-      String secretKey = 'aceventura@services';
+        PostMsg1();
 
-      String encryptedUsername = encryptUsername(username, secretKey);
+        String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
+        username = username;
 
-      paymentUrlShare = paymentUrl + "?reg_id=" + reg_id +
-          "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
+        String secretKey = 'aceventura@services';
 
-      print('message1_url : ${data['message1_url']}');
-      print('message2_url : ${data['message2_url']}');
+        String encryptedUsername = encryptUsername(username, secretKey);
 
-      print('Encrypted Username: $paymentUrlShare');
-      print('Encrypted Username: $encryptedUsername');
-      // Use these values as needed
+        paymentUrlShare = paymentUrl + "?reg_id=" + reg_id +
+            "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
 
-      print('Receipt URL: $receiptUrl');
-      print('Payment URL: $paymentUrl');
-      print('smartchat_url : $smartchat_url');
+        print('message1_url : ${data['message1_url']}');
+        print('message2_url : ${data['message2_url']}');
 
-      // You can store these values in variables or use them directly
-    } else {
-      print('Failed to load data: ${response.statusCode}');
+        print('Encrypted Username: $paymentUrlShare');
+        print('Encrypted Username: $encryptedUsername');
+        // Use these values as needed
+
+        print('Receipt URL: $receiptUrl');
+        print('Payment URL: $paymentUrl');
+        print('smartchat_url : $smartchat_url');
+
+        // You can store these values in variables or use them directly
+      } else {
+        print('Failed to load data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
     }
-  } catch (e) {
-    print('Error: $e');
   }
-}
 
-String encryptUsername(String username, String secretKey) {
-  // Combine the username and secretKey
-  String combined = username + secretKey;
+  String encryptUsername(String username, String secretKey) {
+    // Combine the username and secretKey
+    String combined = username + secretKey;
 
-  // Convert the combined string to bytes
-  List<int> bytes = utf8.encode(combined);
+    // Convert the combined string to bytes
+    List<int> bytes = utf8.encode(combined);
 
-  // Perform SHA1 encryption
-  Digest sha1Result = sha1.convert(bytes);
+    // Perform SHA1 encryption
+    Digest sha1Result = sha1.convert(bytes);
 
-  // Return the encrypted value as a hexadecimal string
-  return sha1Result.toString();
-}
+    // Return the encrypted value as a hexadecimal string
+    return sha1Result.toString();
+  }
 
-String customUriEncode(String input, String allowedChars) {
-  final StringBuffer encoded = StringBuffer();
+  String customUriEncode(String input, String allowedChars) {
+    final StringBuffer encoded = StringBuffer();
 
-  for (int i = 0; i < input.length; i++) {
-    final String char = input[i];
-    if (allowedChars.contains(char)) {
-      encoded.write(char);  // Allow the character as-is
-    } else {
-      // Percent-encode the character
-      final List<int> bytes = utf8.encode(char);
-      for (final int byte in bytes) {
-        encoded.write('%${byte.toRadixString(16).toUpperCase()}');
+    for (int i = 0; i < input.length; i++) {
+      final String char = input[i];
+      if (allowedChars.contains(char)) {
+        encoded.write(char);  // Allow the character as-is
+      } else {
+        // Percent-encode the character
+        final List<int> bytes = utf8.encode(char);
+        for (final int byte in bytes) {
+          encoded.write('%${byte.toRadixString(16).toUpperCase()}');
+        }
       }
     }
+
+    return encoded.toString();
   }
 
-  return encoded.toString();
+Future<void> PostMsg1() async {
+
 }
 
 
@@ -180,9 +193,6 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
     super.initState();
     _getSchoolInfo();
     getVersion();
-    getEvolvuUpdate(url); //get_evolvu_updates
-    getSchoolNews(url);   //get_news
-
   }
 
   @override
@@ -196,96 +206,82 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           });
         },
       ),
-      const CalenderPage(),
+      CalendarPage(),
+
+      PaymentWebview(regId: reg_id, paymentUrlShare: paymentUrlShare, receiptUrl: receiptUrl, shortName: shortName, academicYr: academic_yr, receipt_button: receipt_button,),
       ParentProfilePage(),
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.blue.shade400,
-      appBar: AppBar(
-        title: Text(
-          "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
-          style: TextStyle(fontSize: 14.sp, color: Colors.white),
-        ),
-        backgroundColor: Colors.pink,
-        elevation: 0,
-        leading: IconButton(
-          icon: const CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: 18,
-            child: Icon(Icons.menu, color: Colors.pink),
+    return WillPopScope(
+      onWillPop: () async {
+        return (await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Are you sure?'),
+            content: const Text('Do you want to exit the app?'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Yes'),
+              ),
+            ],
           ),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return CustomPopup();
-              },
-            );
-          },
+        )) ??
+            false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.blue,
+        appBar: AppBar(
+          title: Text(
+            "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
+            style: TextStyle(fontSize: 14.sp, color: Colors.white),
+          ),
+          backgroundColor: Colors.pink,
+          elevation: 0,
+          leading: IconButton(
+            icon: const CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 18,
+              child: Icon(Icons.menu, color: Colors.pink),
+            ),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return CustomPopup();
+                },
+              );
+            },
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.pink, Colors.blue],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+        body: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.pink, Colors.blue],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
-          ),
-          // Page content
-          pages[pageIndex],
-        ],
+            // Page content
+            pages[pageIndex],
+          ],
+        ),
+        bottomNavigationBar: buildMyNavBar(),
       ),
-      bottomNavigationBar: buildMyNavBar(),
     );
   }
 
-  Future<void>getSchoolNews(String url) async {
-    final getSchoolNewsurl = Uri.parse(url+'get_news'); // Assuming Config.newLogin is your base URL
 
-    try {
-      final response = await http.post(getSchoolNewsurl);
-      print('getSchoolNews => ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        print('getSchoolNews => ${response.body}');
-
-
-      } else {
-        print('getSchoolNews Error Response: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('getSchoolNews Error: $e');
-    }
-  }
-
-  Future<void> getEvolvuUpdate(String url) async {
-    final get_evolvu_updatesurl = Uri.parse(url+'get_evolvu_updates'); // Assuming Config.newLogin is your base URL
-
-    try {
-      final response = await http.post(get_evolvu_updatesurl);
-      print('get_evolvu_updates => ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        print('get_evolvu_updates => ${response.body}');
-
-
-      } else {
-        print('Error Response: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
 
   Future<void> getVersion() async {
-    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/lastest_version'); // Assuming Config.newLogin is your base URL
+    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/flutter_latest_version'); // Assuming Config.newLogin is your base URL
 
     try {
       final response = await http.post(url);
@@ -305,11 +301,15 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           final forcedUpdate = jsonData[0]['forced_update'] as String;
 
           if (androidVersion != null) {
+            print('Current_version => 22222 ${packageInfo.version}');
+
             final androidVersionNum = double.parse(androidVersion);
-            final localAndroidVersion = double.parse(packageInfo.version); // Assuming local version
+            final localAndroidVersion = packageInfo.version; // Assuming local version
 
             // Uncomment the following if-statement for version comparison if needed
-            if (localAndroidVersion < androidVersionNum) {
+            if (localAndroidVersion != androidVersionNum) {
+              print('Current_version => 3333 ${packageInfo.version}');
+
             showDialog(
               context: _context,
               builder: (BuildContext context) {
@@ -363,8 +363,8 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
           _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
           _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 2), // Center icon
-          _buildNavItem(icon: Icons.person, label: 'Profile', index: 2),
-          _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 3),
+          _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
+          _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
         ],
       ),
     );
@@ -529,7 +529,7 @@ class CustomPopup extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => PaymentWebview(
-                  regId: reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr),
+                  regId: reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr, receipt_button: receipt_button,),
             ),
           );
         },

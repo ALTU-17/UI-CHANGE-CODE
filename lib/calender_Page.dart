@@ -20,7 +20,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return WillPopScope(
       onWillPop: () async {
         _showExitConfirmation(_context);
-        return true;
+        return false;
       },
       child: Container(
         color: Colors.white,

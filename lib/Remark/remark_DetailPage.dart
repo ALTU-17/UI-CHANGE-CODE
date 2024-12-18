@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Teacher/Attachment.dart';
@@ -189,22 +191,56 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
   }
 
   Future<void> downloadFile(String url, BuildContext context, String name) async {
-    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Remark");
-
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-
-    var path = "${directory.path}/$name";
-    var file = File(path);
-
     try {
-      var res = await http.get(Uri.parse(url));
-      await file.writeAsBytes(res.bodyBytes);
-      _showSnackBar('File downloaded successfully: Download/Evolvuschool/Parent/Remark');
+      // Request permissions (Android-specific, safe to call on iOS)
+      if (Platform.isAndroid) {
+        var status = await Permission.storage.request();
+        if (!status.isGranted) {
+          _showSnackBar('Storage permission denied.');
+          return;
+        }
+      }
+
+      // Get the platform-specific directory for downloads
+      Directory directory = await getCustomDownloadDirectory();
+
+      String filePath = "${directory.path}/$name";
+      File file = File(filePath);
+
+      // Download the file
+      var response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        _showSnackBar('File downloaded successfully: ${file.path}');
+      } else {
+        _showSnackBar('Failed to download file: ${response.statusCode}');
+      }
     } catch (e) {
-      _showSnackBar('Failed to download file: $e');
+      _showSnackBar('Error during download: $e');
     }
+  }
+
+  Future<Directory> getCustomDownloadDirectory() async {
+    Directory directory;
+
+    if (Platform.isAndroid) {
+      directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Remark");
+    } else if (Platform.isIOS) {
+      // Get the iOS Documents directory
+      Directory appDocumentsDirectory = await getApplicationDocumentsDirectory();
+
+      // Create a custom directory within Documents
+      directory = Directory("${appDocumentsDirectory.path}/Evolvuschool/Parent/Remark");
+
+      // Ensure the directory exists
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+    } else {
+      throw UnsupportedError("Unsupported platform");
+    }
+
+    return directory;
   }
 
   void _showSnackBar(String message) {

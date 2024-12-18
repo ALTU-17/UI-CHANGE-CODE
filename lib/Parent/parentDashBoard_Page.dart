@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../QR/QR_Code.dart';
 import '../Utils&Config/api.dart';
 import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
@@ -212,28 +213,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
       ParentProfilePage(),
     ];
 
-    return WillPopScope(
-      onWillPop: () async {
-        return (await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Are you sure?'),
-            content: const Text('Do you want to exit the app?'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('No'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Yes'),
-              ),
-            ],
-          ),
-        )) ??
-            false;
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.blue,
         appBar: AppBar(
           title: Text(
@@ -274,7 +254,6 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           ],
         ),
         bottomNavigationBar: buildMyNavBar(),
-      ),
     );
   }
 
@@ -370,11 +349,23 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
     );
   }
 
+
   Widget _buildNavItem({required IconData icon, required String label, required int index}) {
     bool isSelected = pageIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() => pageIndex = index),
+      onTap: () {
+        if (index == 4) {
+          // Navigate to the QR Code screen without modifying pageIndex
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => QRCodeScreen(regId: reg_id)),
+          );
+        } else {
+          // Change pageIndex for BottomNavigationBar screens
+          setState(() => pageIndex = index);
+        }
+      },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -392,6 +383,8 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
       ),
     );
   }
+
+
 
   Widget _buildCenterNavItem({required IconData icon, required int index}) {
     bool isSelected = pageIndex == index;

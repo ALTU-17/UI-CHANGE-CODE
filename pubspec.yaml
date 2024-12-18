@@ -2,7 +2,7 @@ name: evolvu
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+#publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -78,19 +78,19 @@ dependencies:
   in_app_update: ^4.2.3
   text_3d: ^0.0.4
   marquee: ^2.2.3
-
-
+  qr_flutter: ^4.1.0
+  lottie: ^2.0.0
 #  package_info_plus: ^4.0.0  # Use the latest version available
 #  open_file: ^3.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-#  flutter_launcher_icons: ^0.14.1
-#flutter_launcher_icons:
-#  android: "launcher_icon"
-#  ios: true
-#  image_path: "assets/ace.png"
+  flutter_launcher_icons: ^0.14.1
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/icon.png"
 #  min_sdk_android: 21
 
   flutter_lints: ^4.0.0
@@ -103,6 +103,7 @@ flutter:
 
   assets:
     - assets/
+    - assets/animations/
   #   - assets/logo/
 
   # An image asset can refer to one or more resolution-specific "variants", see

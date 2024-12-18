@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="altu.ace.dimp.flutter.parentapp">
+    package="altu.ace.dimp.flutter.parentapp"
+    android:versionCode="2"
+    android:versionName="1.0.1">
+
+
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,9 +19,9 @@
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:requestLegacyExternalStorage="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="evolvu"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"

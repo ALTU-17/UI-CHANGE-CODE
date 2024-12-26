@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class LabeledDropdown extends StatelessWidget {
@@ -17,24 +19,22 @@ class LabeledDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0), // Adjust padding
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label displayed outside the dropdown
           SizedBox(
-            width: 100, // Adjust width to align the label
+            width: 100,
             child: Text(
-              label, // Label stays outside
+              label,
               style: const TextStyle(
-                fontSize: 14.0,
                 fontWeight: FontWeight.w600,
+                fontSize: 14.0,
+                color: Colors.black,
               ),
             ),
           ),
-          const SizedBox(width: 20), // Space between label and dropdown
-
-          // Dropdown field with selected value displayed inside
+          const SizedBox(width: 20),
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -44,7 +44,9 @@ class LabeledDropdown extends StatelessWidget {
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: selectedValue, // The selected value is shown here
+                  value: selectedValue != null && options.contains(selectedValue)
+                      ? selectedValue
+                      : options.first, // Ensure a valid default
                   icon: const Icon(Icons.arrow_drop_down),
                   isExpanded: true,
                   items: options.map<DropdownMenuItem<String>>((String value) {
@@ -52,11 +54,15 @@ class LabeledDropdown extends StatelessWidget {
                       value: value,
                       child: Text(
                         value,
-                        style: const TextStyle(fontSize: 16.0),
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.normal, // Ensure text is not bold
+                          color: Colors.black, // Set color explicitly if needed
+                        ),
                       ),
                     );
                   }).toList(),
-                  onChanged: onChanged, // Calls the provided onChanged function
+                  onChanged: onChanged,
                 ),
               ),
             ),

@@ -1,55 +1,60 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 
-class StuTextField extends StatelessWidget {
-  final String label;
-  final String name;
-  final bool readOnly;
+class StuEditTextField extends StatelessWidget {
+  final String labelText;
   final String? initialValue;
-  final ValueChanged<String>? onChanged;
+  final TextInputType keyboardType;
+  final Function(String)? onChanged;
+  final bool readOnly;
+  final VoidCallback? onTap; // For fields like date pickers
+  final Widget? suffixIcon; // For icons like calendars or dropdowns
 
-  const StuTextField({
+  const StuEditTextField({
     Key? key,
-    required this.name,
+    required this.labelText,
     this.initialValue,
-    this.readOnly = false,
+    this.keyboardType = TextInputType.text,
     this.onChanged,
-    required this.label,
+    this.readOnly = false,
+    this.onTap,
+    this.suffixIcon,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0), // Adjust padding for space between fields
+      padding: const EdgeInsets.symmetric(vertical: 8.0), // Space between fields
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center, // Align label and field
         children: [
-          // Label
+          // Label on the left
           SizedBox(
-            width: 100, // Adjust the width to align labels and fields properly
+            width: 100, // Adjust the width as needed
             child: Text(
-              label,
+              labelText,
               style: const TextStyle(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold, // Set font weight to bold
                 fontSize: 14.0,
                 color: Colors.black,
               ),
             ),
           ),
           const SizedBox(width: 20), // Space between label and field
-          // Form Field
+          // Input field on the right
           Expanded(
-            child: FormBuilderTextField(
-              name: name,
-              readOnly: readOnly,
+            child: TextFormField(
               initialValue: initialValue,
+              keyboardType: keyboardType,
+              readOnly: readOnly,
+              onTap: onTap,
+              onChanged: onChanged,
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 14.0,
                   horizontal: 12.0,
-                ),
+                ), // Adjust inner padding
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0), // Rounded border
+                  borderRadius: BorderRadius.circular(10.0),
                   borderSide: BorderSide(
                     color: Colors.grey.shade400,
                   ),
@@ -67,9 +72,11 @@ class StuTextField extends StatelessWidget {
                     width: 2.0,
                   ),
                 ),
+                suffixIcon: suffixIcon, // Add any suffix icon if needed
               ),
               style: const TextStyle(
                 fontSize: 14.0, // Input text size
+                color: Colors.black87,
               ),
             ),
           ),

@@ -21,6 +21,7 @@ class PaymentWebview extends StatefulWidget {
   final String receiptUrl;
   final String shortName;
   final String academicYr;
+  final int receipt_button;
 
   PaymentWebview({
     required this.regId,
@@ -28,6 +29,7 @@ class PaymentWebview extends StatefulWidget {
     required this.receiptUrl,
     required this.shortName,
     required this.academicYr,
+    required this.receipt_button,
   });
 
   @override
@@ -143,6 +145,7 @@ class _PaymentWebviewState extends State<PaymentWebview> {
       floatingActionButton: Stack(
         alignment: Alignment.bottomCenter,
         children: [
+          if(widget.receipt_button == 1)
           FloatingActionButton(
             onPressed: () {
               // Navigator.pop(context);

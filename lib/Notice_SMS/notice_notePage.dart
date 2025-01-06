@@ -148,7 +148,7 @@ class _NoticeNotePageState extends State<NoticeNotePage> {
         backgroundColor: Colors.transparent,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
-          toolbarHeight: 50.h,
+          toolbarHeight: 100.h,
           title: Text(
             "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
             style: TextStyle(fontSize: 14.sp, color: Colors.white),

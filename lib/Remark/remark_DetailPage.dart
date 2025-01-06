@@ -29,7 +29,8 @@ class RemarkInfo {
 class RemarkDetailPage extends StatefulWidget {
   final RemarkInfo remarkInfo;
 
-  const RemarkDetailPage({Key? key, required this.remarkInfo}) : super(key: key);
+  const RemarkDetailPage({Key? key, required this.remarkInfo})
+      : super(key: key);
 
   @override
   _RemarkDetailPageState createState() => _RemarkDetailPageState();
@@ -147,7 +148,8 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
           ),
         ),
         ...widget.remarkInfo.attachment.map((attachment) {
-          bool isFileNotUploaded = (attachment.fileSize / 1024) == 0.00;
+          bool isFileNotUploaded = attachment.fileSize <= 0;
+
           return ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.file_download, size: 25),
@@ -167,6 +169,17 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
       ],
     );
   }
+  Future<bool> _checkAndRequestPermission() async {
+    if (Platform.isAndroid) {
+      final status = await Permission.storage.status;
+      if (status.isDenied) {
+        final result = await Permission.storage.request();
+        return result.isGranted;
+      }
+      return status.isGranted;
+    }
+    return true; // iOS permissions are typically handled differently
+  }
 
   Future<void> _handleDownload(Attachment attachment) async {
     DateTime now = DateTime.now();
@@ -179,7 +192,13 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
         } else {
           String downloadUrl =
               '$projectUrl/uploads/remark/${widget.remarkInfo.remarkDate}/${widget.remarkInfo.remarkId}/${attachment.imageName}';
-          await downloadFile(downloadUrl, context, attachment.imageName);
+          if (Platform.isAndroid) {
+            await downloadFile(downloadUrl, context, attachment.imageName);
+          } else if (Platform.isIOS) {
+            await _downloadFileIOS(downloadUrl, attachment.imageName);
+          } else {
+            _showSnackBar('Unsupported platform');
+          }
           _showSnackBar('File downloaded successfully.');
         }
       } catch (e) {
@@ -190,60 +209,93 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
     }
   }
 
-  Future<void> downloadFile(String url, BuildContext context, String name) async {
+  downloadFile(String url, BuildContext context, String name) async {
+    var directory =
+    Directory("/storage/emulated/0/Download/Remarks");
+
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    var path = "${directory.path}/$name";
+    var file = File(path);
+
     try {
-      // Request permissions (Android-specific, safe to call on iOS)
-      if (Platform.isAndroid) {
-        var status = await Permission.storage.request();
-        if (!status.isGranted) {
-          _showSnackBar('Storage permission denied.');
-          return;
-        }
+      var res = await http.get(Uri.parse(url));
+      await file.writeAsBytes(res.bodyBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'File downloaded successfully: Download/Remarks'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _downloadFileIOS(String url, String fileName) async {
+    try {
+      // Get the application's Documents directory
+      final directory = await getApplicationSupportDirectory();
+
+      // Create a custom subdirectory within the Documents folder
+      final customDirectory = Directory('${directory.path}/Remarks');
+      if (!await customDirectory.exists()) {
+        await customDirectory.create(recursive: true);
       }
 
-      // Get the platform-specific directory for downloads
-      Directory directory = await getCustomDownloadDirectory();
+      // Construct the full path for the downloaded file
+      final filePath = '${customDirectory.path}/$fileName';
+      final file = File(filePath);
 
-      String filePath = "${directory.path}/$name";
-      File file = File(filePath);
-
-      // Download the file
-      var response = await http.get(Uri.parse(url));
+      // Fetch the file data from the URL
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
+        // Write the file to the custom directory
         await file.writeAsBytes(response.bodyBytes);
-        _showSnackBar('File downloaded successfully: ${file.path}');
+        _showSnackBar('File downloaded successfully. Find it in Remarks folder.');
       } else {
         _showSnackBar('Failed to download file: ${response.statusCode}');
       }
     } catch (e) {
-      _showSnackBar('Error during download: $e');
+      _showSnackBar('Failed to download file: $e');
     }
   }
 
-  Future<Directory> getCustomDownloadDirectory() async {
-    Directory directory;
 
-    if (Platform.isAndroid) {
-      directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Remark");
-    } else if (Platform.isIOS) {
-      // Get the iOS Documents directory
-      Directory appDocumentsDirectory = await getApplicationDocumentsDirectory();
 
-      // Create a custom directory within Documents
-      directory = Directory("${appDocumentsDirectory.path}/Evolvuschool/Parent/Remark");
-
-      // Ensure the directory exists
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-    } else {
-      throw UnsupportedError("Unsupported platform");
-    }
-
-    return directory;
-  }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
+class FileHandler {
+  static Future<String> getDirectoryPath(String subFolder) async {
+    final directory = Platform.isIOS
+        ? await getApplicationSupportDirectory()
+        : await getExternalStorageDirectory();
+    final customDirectory = Directory('${directory!.path}/$subFolder');
+    if (!await customDirectory.exists()) {
+      await customDirectory.create(recursive: true);
+    }
+    return customDirectory.path;
+  }
+
+  static Future<void> downloadFile(String url, String filePath) async {
+    final file = File(filePath);
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      await file.writeAsBytes(response.bodyBytes);
+    } else {
+      throw Exception('HTTP Error: ${response.statusCode}');
+    }
+  }
+}
+

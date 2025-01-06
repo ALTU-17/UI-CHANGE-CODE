@@ -20,6 +20,7 @@ import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
+import 'DrawerParentProfile.dart';
 
 class ParentDashBoardPage extends StatefulWidget {
   final String academic_yr;
@@ -501,7 +502,7 @@ class CustomPopup extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => ParentProfilePage()),
+            MaterialPageRoute(builder: (_) => DrawerParentProfilePage()),
           );
         },
       ),

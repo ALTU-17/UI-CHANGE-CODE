@@ -99,6 +99,8 @@ flutter {
 
 dependencies {
 
-    implementation platform('com.google.firebase:firebase-bom:33.0.0')
-    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-messaging:23.0.0'
+    implementation 'com.google.firebase:firebase-core:20.0.0'
 }
+
+apply plugin: 'com.google.gms.google-services'

@@ -23,7 +23,7 @@ class PaymentWebview extends StatefulWidget {
   final String academicYr;
   final int receipt_button;
 
-  PaymentWebview({
+  PaymentWebview({super.key,
     required this.regId,
     required this.paymentUrlShare,
     required this.receiptUrl,

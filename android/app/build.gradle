@@ -98,9 +98,9 @@ flutter {
 }
 
 dependencies {
-
-    implementation 'com.google.firebase:firebase-messaging:23.0.0'
-    implementation 'com.google.firebase:firebase-core:20.0.0'
+    implementation platform('com.google.firebase:firebase-bom:32.7.2') // Or latest version
+    implementation 'com.google.firebase:firebase-messaging'
 }
+
 
 apply plugin: 'com.google.gms.google-services'

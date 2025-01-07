@@ -84,7 +84,7 @@ class _LoginState extends State<LoginPage> {
   bool _isLoading = false; // Add this line
 
   String url = "";
-
+  String? token;
   @override
   void initState() {
     super.initState();
@@ -120,7 +120,7 @@ class _LoginState extends State<LoginPage> {
   void getToken() async {
     try {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
-      String? token = await messaging.getToken();
+       token = await messaging.getToken();
 
       if (token != null) {
         debugPrint("FCM Token: $token");
@@ -190,7 +190,7 @@ class _LoginState extends State<LoginPage> {
 
       http.Response response = await http.post(
         Uri.parse(url+"get_login"),
-        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId},
+        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId,'token': token},
       );
 
       print('Response status code: ${response.statusCode}');

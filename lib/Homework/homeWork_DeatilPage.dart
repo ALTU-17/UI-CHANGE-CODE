@@ -1,20 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:evolvu/Homework/homeWork_notePage.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import '../Utils&Config/DownloadHelper.dart';
+
 import '../Teacher/Attachment.dart';
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 
 class HomeworkInfo {
   final String className;

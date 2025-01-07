@@ -9,40 +9,25 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'Magpie.dart';
 import 'Utils&Config/all_routs.dart';
 
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    // paste the code copied
-    // from Firebase SDK below.
-      options: const FirebaseOptions(
-          apiKey: "AIzaSyC3BF5vWaxhD8YZBLNzkve5HWqNW5ZtQjg",
-          authDomain: "flutterparentapp.firebaseapp.com",
-          projectId: "flutterparentapp",
-          storageBucket: "flutterparentapp.appspot.com",
-          messagingSenderId: "997012539911",
-          appId: "1:997012539911:web:24d67a0087ff2034cef8a2",
-          measurementId: "G-3GX4YEY542")
-  );
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+    debugPrint("Firebase initialized successfully");
+  } on FirebaseException catch (e) {
+    debugPrint("Firebase initialization failed: ${e.message}");
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e"); // Log the entire error for further debugging
+  }
 
   runApp(MyApp());
-
-  // Initialize notification settings
-  // final initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  // final initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-  //
-  // flutterLocalNotificationsPlugin.initialize(
-  //   initializationSettings,
-  //   onSelectNotification: (payload) async {
-  //     if (payload != null) {
-  //       OpenFile.open(payload);  // Open the downloaded file
-  //     }
-  //   },
-  // );
 }
-
 
 
 class MyApp extends StatelessWidget {
@@ -55,25 +40,22 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(1.0)),
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            onGenerateRoute: RouterConfigs.onGenerateRoutes,
-            home: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.pink, Colors.blue],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          onGenerateRoute: RouterConfigs.onGenerateRoutes,
+          home: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.pink, Colors.blue],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-              child: UserNamePage(),
             ),
+            child: UserNamePage(),
           ),
         );
       },
     );
   }
 }
+

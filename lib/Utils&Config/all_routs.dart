@@ -53,8 +53,8 @@ class RouterConfigs {
       // case parentProfilePage:
         return MaterialPageRoute(builder: (_) => ParentProfilePage());
       case calenderPage:
-        return MaterialPageRoute(builder: (_) => CalenderPage());
-      case homework:
+      //   return MaterialPageRoute(builder: (_) => CalenderPage());
+      // case homework:
         // return MaterialPageRoute(builder: (_) => HomeWorkPage());
     // //   case teacherNoteDeatilPage:
 

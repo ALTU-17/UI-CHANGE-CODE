@@ -22,7 +22,7 @@ class StuTextField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0), // Adjust padding for space between fields
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Label
           SizedBox(
@@ -45,8 +45,8 @@ class StuTextField extends StatelessWidget {
               initialValue: initialValue,
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 12.0,
-                  horizontal: 10.0,
+                  vertical: 14.0,
+                  horizontal: 12.0,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0), // Rounded border

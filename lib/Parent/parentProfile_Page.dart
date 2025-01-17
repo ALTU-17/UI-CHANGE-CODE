@@ -21,7 +21,8 @@ import 'package:http/http.dart' as http;
 
 TextEditingController _dobController = TextEditingController();
 bool _isClickable = true; // This variable controls if the radio is clickable or not
-
+TextEditingController _fatherDobController = TextEditingController();
+TextEditingController _motherDobController = TextEditingController()  ;
 
 
 class ParentDet {
@@ -208,11 +209,46 @@ class _ParentProfilePage extends State<ParentProfilePage> {
         ParentDetmod = ParentDet.fromJson(data);
 
         isLoading = false; // Data is loaded
+        _initializeDateControllers();
+        // _fatherDobController = TextEditingController(
+        //   text: ParentDetmod?.fDob ?? '', // Father's initial DOB
+        // );
+        // _motherDobController = TextEditingController(
+        //   text: ParentDetmod?.mDob ?? '', // Mother's initial DOB
+        // );
       });
 
       print('ParentDetmod  Name222222: ${ParentDetmod?.mDob}');
     }
   }
+
+  void _initializeDateControllers() {
+    // Format the initial date for display (dd-MM-yyyy)
+    String formattedFatherDob = _formatDateForDisplay(ParentDetmod?.fDob);
+    String formattedMotherDob = _formatDateForDisplay(ParentDetmod?.mDob);
+
+    _fatherDobController = TextEditingController(text: formattedFatherDob);
+    _motherDobController = TextEditingController(text: formattedMotherDob);
+  }
+
+  String _formatDateForDisplay(String? dateString) {
+    if (dateString == null || dateString.isEmpty) {
+      return '';
+    }
+
+    try {
+      // Parse the date string (assuming it's in yyyy-MM-dd format)
+      DateTime date = DateTime.parse(dateString);
+
+      // Format the date for display (dd-MM-yyyy)
+      return DateFormat('dd-MM-yyyy').format(date);
+    } catch (e) {
+      // Handle parsing errors (e.g., invalid date format)
+      print('Error parsing date: $e');
+      return ''; // Return an empty string or a default value
+    }
+  }
+
 
 
   Future<void> updateContactDetails(String mobileNumber, String shortname) async {
@@ -257,19 +293,23 @@ class _ParentProfilePage extends State<ParentProfilePage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> result = jsonDecode(response.body); // Decode as a list
-        print('get_active_phone_no000 = >${response.body}');
+        print('get_active_phone_no response: ${response.body}');
 
         if (result.isNotEmpty && result[0] is Map<String, dynamic>) {
-          final activePhoneNumber = result[0]['active_phone_no'] as String;
-          print('get_active_phone_no response = >'+activePhoneNumber);
-          setState(() {
-            // Determine which radio button to select
-            if (activePhoneNumber ==  ParentDetmod?.fMobile) {
-              selectedSmsRecipient = 'Father';
-            } else if (activePhoneNumber ==  ParentDetmod?.mMobile) {
-              selectedSmsRecipient = 'Mother';
-            }
-          });
+          final activePhoneNumber = result[0]['active_phone_no']?.toString()?.trim() ?? '';
+          print('Active Phone Number: $activePhoneNumber');
+
+          if (activePhoneNumber.isNotEmpty) {
+            setState(() {
+              if (activePhoneNumber == ParentDetmod?.fMobile?.trim()) {
+                selectedSmsRecipient = 'Father';
+              } else if (activePhoneNumber == ParentDetmod?.mMobile?.trim()) {
+                selectedSmsRecipient = 'Mother';
+              } else {
+                print('No matching phone number found.');
+              }
+            });
+          }
         } else {
           print('Invalid response structure.');
         }
@@ -283,10 +323,12 @@ class _ParentProfilePage extends State<ParentProfilePage> {
 
 
 
+
   @override
   void initState() {
     super.initState();
     _getSchoolInfo();
+
   }
   late BuildContext _context; // Declare _context here
 
@@ -489,30 +531,36 @@ class _ParentProfilePage extends State<ParentProfilePage> {
                       ),
 
 
-                StuEditTextField(
-                labelText: 'Date of Birth',
-                  initialValue: ParentDetmod?.fDob ?? '',
-                  readOnly: false, // Make the field read-only to prevent manual input
-                  onTap: () async {
-                    // Open the date picker dialog
-                    DateTime? selectedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(), // Default date shown
-                      firstDate: DateTime(1900), // Earliest selectable date
-                      lastDate: DateTime.now(), // Latest selectable date
-                    );
+                      BirthdatTextField(
+                        labelText: 'Date of Birth',
+                        controller: _fatherDobController,
+                        onTap: () async {
+                          // Open the date picker dialog
+                          DateTime? selectedDate = await showDatePicker(
+                            context: context,
+                            initialDate: _fatherDobController.text.isNotEmpty
+                                ? DateTime.tryParse(_fatherDobController.text) ?? DateTime.now()
+                                : DateTime.now(),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
 
-                    if (selectedDate != null) {
-                      setState(() {
-                        // Format the selected date as dd-MM-yyyy and update the field
-                        ParentDetmod?.fDob = DateFormat('dd-MM-yyyy').format(selectedDate);
-                      });
-                    }
-                  },
-                  onChanged: (value) {
-                    // No need for this since we handle the value in onTap
-                  },
-                ),
+                          if (selectedDate != null) {
+                            setState(() {
+                              // Format the date with leading zeros for day and month
+                              String formattedDay = selectedDate.day.toString().padLeft(2, '0');
+                              String formattedMonth = selectedDate.month.toString().padLeft(2, '0');
+                              String formattedYear = selectedDate.year.toString();
+
+                              _fatherDobController.text =
+                              "$formattedDay-$formattedMonth-$formattedYear";
+
+                              // Update ParentDetmod
+                              ParentDetmod?.fDob = "$formattedYear-$formattedMonth-$formattedDay";
+                            });
+                          }
+                        },
+                      ),
 
 
                 StuTextField(
@@ -598,380 +646,36 @@ class _ParentProfilePage extends State<ParentProfilePage> {
 
 
 
-
-                      StuEditTextField(
+                      BirthdatTextField(
                         labelText: 'Date of Birth',
-                        initialValue: ParentDetmod?.mDob ?? '',
-                        //readOnly: true,
-
+                        controller: _motherDobController,
                         onTap: () async {
                           // Open the date picker dialog
                           DateTime? selectedDate = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now(), // Default date shown
-                            firstDate: DateTime(1900), // Earliest selectable date
-                            lastDate: DateTime.now(), // Latest selectable date
+                            initialDate: _motherDobController.text.isNotEmpty
+                                ? DateTime.tryParse(_motherDobController.text) ?? DateTime.now()
+                                : DateTime.now(),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
                           );
+
                           if (selectedDate != null) {
                             setState(() {
-                              // Format the selected date and update the field
-                              ParentDetmod?.mDob = "${selectedDate.year}-${selectedDate.month}-${selectedDate.day}";
+                              // Format the date with leading zeros for day and month
+                              String formattedDay = selectedDate.day.toString().padLeft(2, '0');
+                              String formattedMonth = selectedDate.month.toString().padLeft(2, '0');
+                              String formattedYear = selectedDate.year.toString();
+
+                              _motherDobController.text =
+                              "$formattedDay-$formattedMonth-$formattedYear";
+
+                              // Update ParentDetmod
+                              ParentDetmod?.mDob = "$formattedYear-$formattedMonth-$formattedDay";
                             });
                           }
                         },
-                        onChanged: (value) {}, // No need for this since we handle the value in onTap
                       ),
-                      // CustomTextField(
-                      //   label: 'Father Name',
-                      //   name: 'Father_Name',
-                      //   readOnly: true,
-                      //   initialValue: ParentDetmod?.fatherName ?? '',
-                      // ),
-
-      //                     TextFormField(
-      //                       // controller: fatherOccupationController,
-      //                       initialValue: ParentDetmod?.fatherOccupation ?? '',
-
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Occupation',
-      //                       ),
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.fatherOccupation = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                         initialValue: ParentDetmod?.fOfficeAdd ?? '',
-      //                       decoration:  InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Office Address',
-      //                       ),
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.fOfficeAdd = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.parentAdharNo ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: ' Father Adhar Card no.',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.parentAdharNo = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     // Blood Group
-      //                     DropdownButtonFormField(
-      //   decoration: InputDecoration(
-      //     border: UnderlineInputBorder(),
-      //     labelText: 'Blood Group',
-      //     labelStyle: TextStyle(color: Colors.black), // Ensures the label is black
-      //   ),
-      //   items: ['O', 'A', 'B']
-      //       .map((String value) {
-      //     return DropdownMenuItem(
-      //       value: value,
-      //       child: Text(
-      //         value,
-      //         style: TextStyle(color: Colors.black), // Ensures dropdown item text is black
-      //       ),
-      //     );
-      //   }).toList(),
-      //   onChanged: (String? newValue) {
-      //     // Handle the selected value here
-      //   },
-      // ),
-
-
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.fOfficeTel ?? '',
-      //                       decoration:  InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Telephone',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.fOfficeTel = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.fMobile ?? '',
-      //                       decoration:  InputDecoration(
-      //                         border: UnderlineInputBorder(),
-
-      //                         labelText: 'Mobile Number',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.fMobile = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-
-      // Row(
-      //   crossAxisAlignment: CrossAxisAlignment.center, // Align vertically to the center
-      //   children: [
-      //     Text(
-      //       'Set to receive SMS at this no:',
-      //       style: TextStyle(fontSize: 14),
-      //     ),
-      //     SizedBox(width: 5), // Reduced spacing between the label and radio
-      //     GestureDetector(
-      //       onTap: () {
-      //         if (_isClickable) {
-      //           setState(() {
-      //             if (_selectedOption == 'Set to receive sms at this no') {
-      //               _selectedOption = null; // Uncheck if it's already selected
-      //             } else {
-      //               _selectedOption = 'Set to receive sms at this no'; // Check the radio button
-      //             }
-      //           });
-      //         }
-      //       },
-      //       child: Radio<String>(
-      //         value: 'Set to receive sms at this no',
-      //         groupValue: _selectedOption,
-      //         onChanged: _isClickable
-      //             ? (String? value) {
-      //                 setState(() {
-      //                   _selectedOption = value;
-      //                 });
-      //               }
-      //             : null, // Disable onChanged if not clickable
-      //       ),
-      //     ),
-      //   ],
-      // ),
-
-
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.fEmail ?? '',
-      //                       decoration:  InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Email id',
-      //                       ),
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.fEmail = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-
-      //                     TextFormField(
-      //   controller: _dobController, // Add a TextEditingController
-      //   decoration: const InputDecoration(
-      //     border: UnderlineInputBorder(),
-      //     labelText: 'Date of Birth',
-      //   ),
-      //   onTap: () async {
-      //     // Hide the keyboard when the field is tapped
-      //     FocusScope.of(context).requestFocus(FocusNode());
-
-      //     // Show the date picker
-      //     DateTime? pickedDate = await showDatePicker(
-      //       context: context,
-      //       initialDate: DateTime.now(),
-      //       firstDate: DateTime(1900),
-      //       lastDate: DateTime.now(),
-      //     );
-
-      //     if (pickedDate != null) {
-      //       // Format the date and update the controller text
-      //       String formattedDate = "${pickedDate.toLocal()}".split(' ')[0]; // Date in YYYY-MM-DD format
-      //       setState(() {
-      //         _dobController.text = formattedDate; // Update the TextFormField with the selected date
-      //       });
-
-      //       // Optionally update the ParentDetmod model as well
-      //       //ParentDetmod?.fDob = formattedDate;
-      //     }
-      //   },
-      // ),
-
-
-      //                     CustomTextField(
-      //                       label: 'Mother Name',
-      //                       name: 'Mother_Name',
-      //                       readOnly: true,
-      //                       initialValue: ParentDetmod?.motherName ?? '',
-      //                     ),
-
-
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.motherOccupation ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Occupation',
-      //                       ),
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.motherOccupation = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.mOfficeAdd ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Office Address',
-      //                       ),
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.mOfficeAdd = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.parentAdharNo ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Mother Adhar Card no.',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.parentAdharNo = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     // Blood Group
-      //                     DropdownButtonFormField(
-      //   decoration: InputDecoration(
-      //     border: UnderlineInputBorder(),
-      //     labelText: 'Blood Group',
-      //     labelStyle: TextStyle(color: Colors.black), // Ensures the label is black
-      //   ),
-      //   items: ['O', 'A', 'B']
-      //       .map((String value) {
-      //     return DropdownMenuItem(
-      //       value: value,
-      //       child: Text(
-      //         value,
-      //         style: TextStyle(color: Colors.black), // Ensures dropdown item text is black
-      //       ),
-      //     );
-      //   }).toList(),
-      //   onChanged: (String? newValue) {
-      //     // Handle the selected value here
-      //   },
-      // ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.mOfficeTel ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Telephone',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.mOfficeTel = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-      //                     TextFormField(
-      //                       initialValue: ParentDetmod?.mMobile ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Mobile Number',
-      //                       ),
-      //                       keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.mMobile = newValue;
-      //                           }
-      //                         });
-      //                       },
-      //                     ),
-
-      //                    Row(
-      //   crossAxisAlignment: CrossAxisAlignment.center, // Align vertically to the center
-      //   children: [
-      //     Text(
-      //       'Set to receive SMS at this no:',
-      //       style: TextStyle(fontSize: 14),
-      //     ),
-      //     SizedBox(width: 5), // Reduced spacing between the label and radio
-      //     Radio<String>(
-      //       value: 'Set to receive sms at this no',
-      //       groupValue: _selectedOption,
-      //       onChanged: (String? value) {
-      //         setState(() {
-      //           if (_selectedOption == value) {
-      //             // If the same option is selected, uncheck it
-      //             _selectedOption = null;
-      //           } else {
-      //             // Otherwise, check the radio button
-      //             _selectedOption = value;
-      //           }
-      //         });
-      //       },
-      //     ),
-      //   ],
-      // ),
-
-      // TextFormField(
-      //   initialValue: ParentDetmod?.mEmailid ?? '',
-      //   decoration: InputDecoration(
-      //     border: UnderlineInputBorder(),
-      //     labelText: 'Email id',
-      //     // Optional: Adjust contentPadding if needed
-      //     contentPadding: EdgeInsets.symmetric(vertical: 0),
-      //   ),
-      //   onChanged: (String? newValue) {
-      //     setState(() {
-      //       if (newValue != null) {
-      //         ParentDetmod?.mEmailid = newValue;
-      //       }
-      //     });
-      //   },
-      // ),
-      //  TextFormField(
-      //                       //initialValue: ParentDetmod?.motherOccupation ?? '',
-      //                       decoration: const InputDecoration(
-      //                         border: UnderlineInputBorder(),
-      //                         labelText: 'Date of Birth',
-      //                       ),
-      //                        //keyboardType: TextInputType.number,
-      //                       onChanged: (String? newValue) {
-      //                         setState(() {
-      //                           if (newValue != null) {
-      //                             ParentDetmod?.motherOccupation = newValue;
-      //                           }
-      //                         }
-      //                         );
-      //                       },
-      //                     ),
 
 
                       SizedBox(height: 20),
@@ -1104,7 +808,8 @@ class _ParentProfilePage extends State<ParentProfilePage> {
                               'f_mobile': ParentDetmod?.fMobile ?? '',
                               'f_email': ParentDetmod?.fEmail ?? '',
                               'parent_adhar_no': ParentDetmod?.parentAdharNo ?? '',
-
+                              'f_dob': ParentDetmod?.fDob ?? '',
+                              'm_dob': ParentDetmod?.mDob ?? '',
                               'mother_occupation': ParentDetmod?.motherOccupation ?? '',
                               'm_office_add': ParentDetmod?.mEmailid ?? '',
                               'm_office_tel': ParentDetmod?.mOfficeTel,
@@ -1191,6 +896,93 @@ class _ParentProfilePage extends State<ParentProfilePage> {
           ],
         );
       },
+    );
+  }
+}
+
+
+class BirthdatTextField extends StatelessWidget {
+  final String labelText;
+  final String? initialValue;
+  final TextInputType keyboardType;
+  final Function(String)? onChanged;
+  final bool readOnly;
+  final VoidCallback? onTap; // For fields like date pickers
+  final Widget? suffixIcon; // For icons like calendars or dropdowns
+  final TextEditingController controller; // Accept controller as parameter
+
+  const BirthdatTextField({
+    Key? key,
+    required this.labelText,
+    this.initialValue,
+    this.keyboardType = TextInputType.text,
+    this.onChanged,
+    this.readOnly = false,
+    this.onTap,
+    this.suffixIcon,
+    required this.controller, // Receive controller here
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              labelText,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14.0,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: TextFormField(
+              controller: controller, // Use passed controller here
+              keyboardType: keyboardType,
+              readOnly: readOnly,
+              onTap: onTap,
+              onChanged: onChanged,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14.0,
+                  horizontal: 12.0,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  borderSide: const BorderSide(
+                    color: Colors.blue,
+                    width: 2.0,
+                  ),
+                ),
+                suffixIcon: suffixIcon,
+              ),
+              style: const TextStyle(
+                fontSize: 14.0,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

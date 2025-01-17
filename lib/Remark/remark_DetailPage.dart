@@ -240,26 +240,18 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
   }
 
   Future<void> _downloadFileIOS(String url, String fileName) async {
+    // Get the documents directory on iOS
+    final directory = await getApplicationDocumentsDirectory();
+
+    // Construct the full path for the downloaded file
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
     try {
-      // Get the application's Documents directory
-      final directory = await getApplicationSupportDirectory();
-
-      // Create a custom subdirectory within the Documents folder
-      final customDirectory = Directory('${directory.path}/Remarks');
-      if (!await customDirectory.exists()) {
-        await customDirectory.create(recursive: true);
-      }
-
-      // Construct the full path for the downloaded file
-      final filePath = '${customDirectory.path}/$fileName';
-      final file = File(filePath);
-
-      // Fetch the file data from the URL
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-        // Write the file to the custom directory
         await file.writeAsBytes(response.bodyBytes);
-        _showSnackBar('File downloaded successfully. Find it in Remarks folder.');
+        _showSnackBar('Find it in the Files/On My iPhone/EvolvU Smart School - Parent.');
       } else {
         _showSnackBar('Failed to download file: ${response.statusCode}');
       }
@@ -271,31 +263,11 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
 
 
 
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
 }
-class FileHandler {
-  static Future<String> getDirectoryPath(String subFolder) async {
-    final directory = Platform.isIOS
-        ? await getApplicationSupportDirectory()
-        : await getExternalStorageDirectory();
-    final customDirectory = Directory('${directory!.path}/$subFolder');
-    if (!await customDirectory.exists()) {
-      await customDirectory.create(recursive: true);
-    }
-    return customDirectory.path;
-  }
 
-  static Future<void> downloadFile(String url, String filePath) async {
-    final file = File(filePath);
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      await file.writeAsBytes(response.bodyBytes);
-    } else {
-      throw Exception('HTTP Error: ${response.statusCode}');
-    }
-  }
-}
 

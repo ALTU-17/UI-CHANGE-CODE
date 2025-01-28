@@ -345,7 +345,7 @@ class _NoticeNotePageState extends State<NoticeNotePage> {
                                                   teacher: note.teacherName,
                                                   remarksubject: note.subject,
                                                   type: note.noticeType,
-                                                  // attachments: note.imageList,
+                                                  imageList: note.imageList,
                                                   // date: note.noticeDate,
                                                   readStatus: note.readStatus,
                                                   onTap: () async {

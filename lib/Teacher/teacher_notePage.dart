@@ -240,6 +240,7 @@ class _TeacherNotePageState extends State<TeacherNotePage> {
                               classname: note.className,
                               sectionname: note.sectionname,
                               readStatus: note.read_status,
+                              showDownloadIcon: note.imageList,
                               onTap: () async {
                                 // Navigate to TeacherDetailCard and wait for the result
                                 final result = await Navigator.push(

@@ -291,6 +291,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                               teacher: remark.teacherName,
                               remarksubject: remark.remarkSubject,
                               readStatus: remark.readStatus,
+                              showDownloadIcon: remark.imageList,
                               onTap: () async {
                                 await updateReadStatus(remark.remarkId);
                                 Navigator.push(
@@ -307,6 +308,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                                     ),
                                   ),
                                 );
+
                                 refreshRemarkNotes();
                               },
                             ),

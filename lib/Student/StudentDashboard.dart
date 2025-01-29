@@ -656,38 +656,114 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         onTap: (BuildContext context) async {
           try {
             // Make API call to get absent dates
-            final absentDates = await getAbsentDates(widget.studentId); // Await the result
+            final absentDates = await getAbsentDates(widget.studentId);
 
-            // Show dialog with absent dates
             showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: Text('Absent Dates'),
-                  content: SizedBox(
-                    child: ListView.builder(
-                      itemCount: absentDates.length, // Ensure this is an int
-                      itemBuilder: (BuildContext context, int index) {
-                        return ListTile(
-                          title: Text(
-                            absentDates[index], // Display absent date
-                            style: TextStyle(fontSize: 16.sp),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24), // More rounded corners
+                  ),
+                  titlePadding: const EdgeInsets.all(0), // Remove default padding
+                  title: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.pink, Colors.deepPurple],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ), // Gradient header background
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.event_busy, color: Colors.white, size: 28), // Icon
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Absent Dates',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        );
-                      },
+                        ),
+                      ],
+                    ),
+                  ),
+                  content: Container(
+                    width: double.maxFinite,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50, // Light background for content
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: SizedBox(
+                      height: 250, // Increased height for better visibility
+                      child: ListView.separated(
+                        itemCount: absentDates.length, // Ensure this is an int
+                        separatorBuilder: (context, index) => Divider(
+                          thickness: 1.5,
+                          color: Colors.grey.shade300, // Thicker divider
+                        ),
+                        itemBuilder: (BuildContext context, int index) {
+                          return ListTile(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Clicked on: ${absentDates[index]}')),
+                              );
+                            },
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.pinkAccent,
+                              child: Icon(Icons.calendar_today, color: Colors.white),
+                            ),
+                            title: Text(
+                              absentDates[index],
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                      child: const Text('Close'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Close the dialog
+                            },
+                            icon: Icon(Icons.close, color: Colors.pink),
+                            label: Text(
+                              'CLOSE',
+                              style: TextStyle(color: Colors.pink, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          // ElevatedButton(
+                          //   style: ElevatedButton.styleFrom(
+                          //     backgroundColor: Colors.pinkAccent,
+                          //     shape: RoundedRectangleBorder(
+                          //       borderRadius: BorderRadius.circular(8),
+                          //     ),
+                          //   ),
+                          //   onPressed: () {
+                          //     // Add any additional action here
+                          //   },
+                          //   child: const Text('ACTION'),
+                          // ),
+                        ],
+                      ),
                     ),
                   ],
                 );
               },
             );
+
           } catch (error) {
             // Handle errors here (e.g., show a snackbar or error message)
             ScaffoldMessenger.of(context).showSnackBar(

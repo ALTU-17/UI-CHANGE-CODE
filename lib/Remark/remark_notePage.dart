@@ -26,6 +26,8 @@ class _RemarkNotePage extends State<RemarkNotePage> {
   String reg_id = "";
   String url = "";
 
+
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +63,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
       print('School info not found in SharedPreferences.');
     }
 
-    // print('API URL: $url+get_premark');
+    print('API URL: $url+get_premark');
     // print('Request Body:');
     // print({
     //   'student_id': widget.studentId,
@@ -237,7 +239,8 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                             ],
                           ),
                         ),
-                      );                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      );
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return Center(
                         child: Container(
                           margin: const EdgeInsets.all(10),
@@ -278,7 +281,12 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                             ],
                           ),
                         ),
-                      );                    } else {
+                      );
+                    } else {
+                      List<Remark> sortedRemarks = List.from(snapshot.data ?? []);
+                      sortedRemarks.sort((a, b) => DateTime.parse(b.remarkDate)
+                          .compareTo(DateTime.parse(a.remarkDate)));
+
                       return ListView.builder(
                         padding: EdgeInsets.only(top: 10.h),
                         itemCount: snapshot.data!.length,

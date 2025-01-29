@@ -93,6 +93,8 @@ class RemarkNoteCard extends StatelessWidget {
     required this.showDownloadIcon, // Initialize it
   }) : super(key: key);
 
+
+
   @override
   Widget build(BuildContext context) {
     DateTime parsedDate = DateTime.parse(date);
@@ -149,7 +151,7 @@ class RemarkNoteCard extends StatelessWidget {
                                   ),
                                 ),
                                 TextSpan(
-                                  text: teacher,
+                                  text: '${trimTeacherName(teacher)}',
                                 ),
                               ],
                             ),
@@ -193,5 +195,12 @@ class RemarkNoteCard extends StatelessWidget {
         ],
       ),
     );
+  }
+  String trimTeacherName(String name) {
+    List<String> parts = name.split(' ');
+    if (parts.length > 2) {
+      return '${parts[0]} ${parts[1]}'; // Return the first two parts
+    }
+    return name; // If there's no second space, return the original name
   }
 }

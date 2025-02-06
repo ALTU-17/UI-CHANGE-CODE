@@ -452,7 +452,7 @@ class _StudentFormState extends State<StudentForm> {
       },
     );
     imageUrl = "${projectUrl}uploads/student_image/$studentId.jpg";
-    print('Response status code: ${response.statusCode}');
+    print('Response status code: $imageUrl');
     print('get_student body: ${response.body}');
 
     if (response.statusCode == 200) {
@@ -654,7 +654,7 @@ class _StudentFormState extends State<StudentForm> {
             print('Failed to load house data $selectedTrans');
           } else if (childInfo?.transportMode == 'Van') {
             selectedTrans = 'Private Van';
-          } else if (childInfo?.house == 'Self') {
+          } else if (childInfo?.transportMode == 'Self') {
             selectedTrans = 'Self';
           }
         });
@@ -1170,6 +1170,102 @@ class _StudentFormState extends State<StudentForm> {
                   onPressed: () async {
                     print('###### body: ${childInfo?.allergies}');
 
+                    String? aadharNumber = childInfo?.stuAadhaarNo;
+
+                    // Check if Aadhar number is empty or not exactly 12 digits
+                    if (aadharNumber == null || aadharNumber.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(aadharNumber)) {
+                      Fluttertoast.showToast(
+                        msg: "Enter a valid 12-digit numeric Aadhar number",
+                        toastLength: Toast.LENGTH_LONG,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+
+                    if (childInfo?.nationality == '' || childInfo?.nationality == ' ' ) {
+                      Fluttertoast.showToast(
+                        msg: "Please enter nationality",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+
+                    if (childInfo?.permantAdd == '') {
+                      Fluttertoast.showToast(
+                        msg: "Please enter Address",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+
+                    if (childInfo?.city == '') {
+                      Fluttertoast.showToast(
+                        msg: "Please enter city",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+
+                    if (childInfo?.state == '') {
+                      Fluttertoast.showToast(
+                        msg: "Please enter state",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+                    if (childInfo?.motherTongue == '') {
+                      Fluttertoast.showToast(
+                        msg: "Please enter Mother tongue",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 16.0,
+                      );
+                      return; // Stop execution if validation fails
+                    }
+
+                    // if (childInfo?.religion == '') {
+                    //   Fluttertoast.showToast(
+                    //     msg: "Please enter religion",
+                    //     toastLength: Toast.LENGTH_SHORT,
+                    //     gravity: ToastGravity.BOTTOM,
+                    //     backgroundColor: Colors.red,
+                    //     textColor: Colors.white,
+                    //     fontSize: 16.0,
+                    //   );
+                    //   return; // Stop execution if validation fails
+                    // } if (childInfo?.category == '') {
+                    //   Fluttertoast.showToast(
+                    //     msg: "Please enter category",
+                    //     toastLength: Toast.LENGTH_SHORT,
+                    //     gravity: ToastGravity.BOTTOM,
+                    //     backgroundColor: Colors.red,
+                    //     textColor: Colors.white,
+                    //     fontSize: 16.0,
+                    //   );
+                    //   return; // Stop execution if validation fails
+                    // }
+
                     try {
                       Response response = await post(
                         Uri.parse("${url}update_student"),
@@ -1235,7 +1331,11 @@ class _StudentFormState extends State<StudentForm> {
                           fontSize: 16.0,
                         );
 
-                        Navigator.pop(context);
+                        // Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academic_yrstr,shortName: shortName)),
+                        );
                       } else {
                         Fluttertoast.showToast(
                           msg: "Failed to update Profile",

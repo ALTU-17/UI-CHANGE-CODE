@@ -191,7 +191,7 @@ Future<void> PostMsg1() async {
 class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   int pageIndex = 0;
   late BuildContext _context;
-
+  DateTime? _lastPressedTime;
   @override
   void initState() {
     super.initState();
@@ -216,47 +216,68 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
       ParentProfilePage(),
     ];
 
-    return Scaffold(
-        backgroundColor: Colors.blue,
-        appBar: AppBar(
-          title: Text(
-            "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
-            style: TextStyle(fontSize: 14.sp, color: Colors.white),
-          ),
-          backgroundColor: Colors.pink,
-          elevation: 0,
-          leading: IconButton(
-            icon: const CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 18,
-              child: Icon(Icons.menu, color: Colors.pink),
+    return WillPopScope(
+      onWillPop: () async {
+        final now = DateTime.now();
+        final bool isDoublePress = _lastPressedTime != null &&
+            now.difference(_lastPressedTime!) < Duration(seconds: 2);
+
+        if (isDoublePress) {
+          return true; // Exit the app
+        } else {
+          // Show a toast or snackbar to inform the user to press back again
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Press back again to exit'),
+              duration: Duration(seconds: 2),
             ),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return CustomPopup();
-                },
-              );
-            },
+          );
+          _lastPressedTime = now;
+          return false; // Do not exit the app
+        }
+      },
+      child: Scaffold(
+          backgroundColor: Colors.blue,
+          appBar: AppBar(
+            title: Text(
+              "${widget.shortName} EvolvU Smart Parent App(${widget.academic_yr})",
+              style: TextStyle(fontSize: 14.sp, color: Colors.white),
+            ),
+            backgroundColor: Colors.pink,
+            elevation: 0,
+            leading: IconButton(
+              icon: const CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 18,
+                child: Icon(Icons.menu, color: Colors.pink),
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CustomPopup();
+                  },
+                );
+              },
+            ),
           ),
-        ),
-        body: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.pink, Colors.blue],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+          body: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.pink, Colors.blue],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
               ),
-            ),
-            // Page content
-            pages[pageIndex],
-          ],
-        ),
-        bottomNavigationBar: buildMyNavBar(),
+              // Page content
+              pages[pageIndex],
+            ],
+          ),
+          bottomNavigationBar: buildMyNavBar(),
+      ),
     );
   }
 

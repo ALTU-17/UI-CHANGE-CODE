@@ -233,10 +233,19 @@ class _LoginState extends State<LoginPage> {
           //             onPressed: () {
           //               Navigator.of(context).pushNamed(loginPage);
           //             },
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academicYr,shortName: shortName)),
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academicYr,shortName: shortName)),
+          // );
+
+          // After successful login, navigate to ParentDashBoardPage like this:
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => ParentDashBoardPage(academic_yr:academicYr,shortName: shortName),
+            ),
+                (Route<dynamic> route) => false, // This removes all previous routes
           );
+
         }
       } else {
         setState(() {

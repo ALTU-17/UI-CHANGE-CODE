@@ -22,6 +22,7 @@ import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
+import '../main.dart';
 import 'DrawerParentProfile.dart';
 
 class ParentDashBoardPage extends StatefulWidget {
@@ -284,7 +285,20 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
 
 
   Future<void> getVersion() async {
-    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/flutter_latest_version'); // Assuming Config.newLogin is your base URL
+
+    String BaseURl = "";
+    final apiService = ApiService();
+    try {
+      // Call the API and get the cleaned response
+      BaseURl = await apiService.fetchUrl();
+      print('BaseURl Cleaned URL: $BaseURl');
+    } catch (error) {
+      // Handle any errors
+      print('BaseURl Error: $error');
+    }
+    print('lastest_version1122 => ${BaseURl + 'flutter_latest_version'}');
+
+    final url = Uri.parse(BaseURl+'flutter_latest_version'); // Assuming Config.newLogin is your base URL
 
     try {
       final response = await http.post(url);

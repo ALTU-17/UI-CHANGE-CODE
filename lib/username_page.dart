@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'Utils&Config/api.dart';
+import 'package:http/http.dart' as http;
+
+import 'main.dart';
 
 class SchoolInfo {
   final String schoolId;
@@ -65,15 +69,17 @@ class UserNamePage extends StatefulWidget {
 
 class _LoginDemoState extends State<UserNamePage> {
   late BuildContext _context;
+  String BaseURl = "";
 
   @override
   void initState() {
     super.initState();
     // email = TextEditingController(text: widget.emailstr);
     checkLoginStatus();
-    getVersion();
 
-    _getSchoolInfo();
+    getURL();
+
+    // _getSchoolInfo();
 // Check login status when the login screen is initialized
   }
 
@@ -87,34 +93,15 @@ class _LoginDemoState extends State<UserNamePage> {
 
 // Modify your login function to store school info in shared preferences
   void loginfun(String emailstr) async {
-
     setState(() {
       _isLoading = true; // Start the loading indicator
     });
-    SchoolInfo hardcodedInfo = SchoolInfo(
-      schoolId: "1",
-      name: "St. Arnolds Central School",
-      shortName: "SACS",
-      url: "https://sms.arnoldcentralschool.org/Test_ParentAppService/",
-      teacherApkUrl: "https://sms.arnoldcentralschool.org/SACSv4test/index.php/",
-      projectUrl: "https://sms.arnoldcentralschool.org/SACSv4test/",
-      defaultPassword: "default123",
-    );
-
-    // Store it in SharedPreferences
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('school_info', jsonEncode(hardcodedInfo.toJson()));
-    // await prefs.setBool('isLoggedIn', true); // Mark user as logged in
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => LoginPage(emailstr)),
-    );
 
     try {
-      print('emailstr body: $emailstr');
+      print('emailstr body: $BaseURl');
 
       Response response = await post(
-        Uri.parse(ROOT),
+        Uri.parse('$BaseURl/validate_user'),
         body: {'user_id': emailstr},
       );
 
@@ -179,42 +166,46 @@ class _LoginDemoState extends State<UserNamePage> {
 
   Future<void> _getSchoolInfo() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Check if school info exists
     String? schoolInfoJson = prefs.getString('school_info');
-    if (schoolInfoJson == null) {
-      // If no data exists, set hardcoded values
-      SchoolInfo hardcodedInfo = SchoolInfo(
-        schoolId: "1",
-        name: "St. Arnolds Central School",
-        shortName: "SACS",
-        url: "https://sms.arnoldcentralschool.org/Test_ParentAppService/",
-        teacherApkUrl: "https://sms.arnoldcentralschool.org/SACSv4test/index.php/",
-        projectUrl: "https://sms.arnoldcentralschool.org/SACSv4test/",
-        defaultPassword: "default123",
-      );
+    String? logUrls = prefs.getString('logUrls');
+    print('logUrls====\\\\\: $logUrls');
+    if (logUrls != null) {
+      try {
+        Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
+        print('logUrls====\\\\\11111: $logUrls');
 
-      // Convert object to JSON and store it
-      String hardcodedJson = jsonEncode(hardcodedInfo.toJson());
-      await prefs.setString('school_info', hardcodedJson);
-      print("Hardcoded school info saved.");
+        user_id = logUrlsparsed['user_id'];
+        academic_yr = logUrlsparsed['academic_yr'];
+        reg_id = logUrlsparsed['reg_id'];
+
+        print('academic_yr ID: $academic_yr');
+        print('reg_id: $reg_id');
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
     } else {
-      print("School info already exists.");
+      print('School info not found in SharedPreferences.');
     }
 
-    // Fetch the data and parse it
-    String fetchedJson = prefs.getString('school_info')!;
-    Map<String, dynamic> parsedData = jsonDecode(fetchedJson);
+    if (schoolInfoJson != null) {
+      try {
+        Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
 
-    shortName = parsedData['short_name'];
-    url = parsedData['url'];
-    durl = parsedData['project_url'];
+        shortName = parsedData['short_name'];
+        url = parsedData['url'];
+        durl = parsedData['project_url'];
+        checkLoginStatus(); // Check login status when the login screen is initialized
 
-    print('Short Name: $shortName');
-    print('URL: $url');
-    print('Project URL: $durl');
+        print('Short Name: $shortName');
+        print('URL: $url');
+        print('URL: $durl');
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
+    } else {
+      print('School info not found in SharedPreferences.');
+    }
   }
-
 
   void checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -223,14 +214,16 @@ class _LoginDemoState extends State<UserNamePage> {
       //   If user is already logged in, navigate to QRScannerPage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => ParentDashBoardPage(shortName: shortName,academic_yr:academic_yr)),
+        MaterialPageRoute(
+            builder: (_) => ParentDashBoardPage(
+                shortName: shortName, academic_yr: academic_yr)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // _getSchoolInfo(); // Check login status when the login screen is initialized
+    _getSchoolInfo(); // Check login status when the login screen is initialized
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -266,7 +259,8 @@ class _LoginDemoState extends State<UserNamePage> {
                     ),
                     SizedBox(height: 5),
                     Image.asset(
-                      'assets/school_runing.png', // Replace with your logo image
+                      'assets/school_runing.png',
+                      // Replace with your logo image
                       width: 400,
                       height: 340,
                     ),
@@ -292,20 +286,20 @@ class _LoginDemoState extends State<UserNamePage> {
 
                     SizedBox(height: 5),
                     Visibility(
-                      visible:
-                      shouldShowText, // Set this boolean based on your condition
+                      visible: shouldShowText,
+                      // Set this boolean based on your condition
                       child: Text(
-                        'Invalid UserId!!!',
+                        'Invalid UserId!',
                         style: TextStyle(
-                          color: Colors.red,
+                          color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     Visibility(
-                      visible:
-                      shouldShowText2, // Set this boolean based on your condition
+                      visible: shouldShowText2,
+                      // Set this boolean based on your condition
                       child: Text(
                         'Please Enter User Name!!',
                         style: TextStyle(
@@ -319,44 +313,44 @@ class _LoginDemoState extends State<UserNamePage> {
                     SizedBox(height: 30),
                     _isLoading
                         ? CircularProgressIndicator() // Show progress indicator when loading
-                        :
-                    Container(
-                      height: 40,
-                      width: 180,
-                      decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(20)),
-                      child: TextButton(
-                        onPressed: () {
-                          if (email.text.toString().isEmpty) {
-                            setState(() {
-                              shouldShowText2 = true;
-                            });
+                        : Container(
+                            height: 40,
+                            width: 180,
+                            decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(20)),
+                            child: TextButton(
+                              onPressed: () {
+                                if (email.text.toString().isEmpty) {
+                                  setState(() {
+                                    shouldShowText2 = true;
+                                  });
 
-                            Fluttertoast.showToast(
-                              msg: 'Please Enter User Name!!',
-                              backgroundColor: Colors.black45,
-                              textColor: Colors.white,
-                              toastLength: Toast.LENGTH_LONG,
-                              gravity: ToastGravity.CENTER,
-                            );
-                          } else {
-                            setState(() {
-                              shouldShowText2 = false;
-                            });
-                            // loginfun(email.text.toString());
-                            loginfun("dsouza.francis@gmail.com");
-                          }
-                        },
-                        child: Text(
-                          'Next',
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
-                      ),
-                    ),
+                                  Fluttertoast.showToast(
+                                    msg: 'Please Enter User Name!!',
+                                    backgroundColor: Colors.black45,
+                                    textColor: Colors.white,
+                                    toastLength: Toast.LENGTH_LONG,
+                                    gravity: ToastGravity.CENTER,
+                                  );
+                                } else {
+                                  setState(() {
+                                    shouldShowText2 = false;
+                                  });
+                                  loginfun(email.text.toString());
+                                }
+                              },
+                              child: Text(
+                                'Next',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                            ),
+                          ),
 
                     SizedBox(height: 20),
-                    Text('Fv1.0.0',
+                    Text(
+                      'Fv1.0.0',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -418,41 +412,73 @@ class _LoginDemoState extends State<UserNamePage> {
     );
   }
 
-  Future<void> getVersion() async {
-    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/lastest_version'); // Assuming Config.newLogin is your base URL
+  Future<void> getURL() async {
+
+    final apiService = ApiService();
 
     try {
-      final response = await post(url);
+      // Call the API and get the cleaned response
+      BaseURl = await apiService.fetchUrl();
+      print('BaseURl Cleaned URL: $BaseURl');
+      getVersion();
+
+    } catch (error) {
+      // Handle any errors
+      print('BaseURl Error: $error');
+    }
+  }
+
+  Future<void> getVersion() async {
+    print('lastest_version11 => ${BaseURl + 'flutter_latest_version'}');
+
+    final url = Uri.parse(BaseURl +
+        'flutter_latest_version'); // Assuming Config.newLogin is your base URL
+
+    try {
+      final response = await http.post(url);
       print('lastest_version => ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
+        print('lastest_version => ${response.body}');
 
         // Check if jsonData is a list and extract the first item if it is
         if (jsonData is List && jsonData.isNotEmpty) {
+          final packageInfo = await PackageInfo.fromPlatform();
+          print('Current_version => ${packageInfo.version}');
+
           final androidVersion = jsonData[0]['latest_version'] as String;
           final releaseNotes = jsonData[0]['release_notes'] as String;
           final forcedUpdate = jsonData[0]['forced_update'] as String;
 
           if (androidVersion != null) {
+            print('Current_version => 22222 ${packageInfo.version}');
+
             final androidVersionNum = double.parse(androidVersion);
-            final localAndroidVersion = double.parse('2.40'); // Assuming local version
+            final localAndroidVersion =
+                packageInfo.version; // Assuming local version
 
             // Uncomment the following if-statement for version comparison if needed
-            if (localAndroidVersion < androidVersionNum) {
+            if (localAndroidVersion != androidVersionNum) {
+              print('Current_version => 3333 ${packageInfo.version}');
+
               showDialog(
                 context: _context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: Text('V 2.40'), // Local version title
+                    title: Text('V ${packageInfo.version}'),
+                    // Local version title
                     content: Text(releaseNotes),
                     actions: [
                       TextButton(
                         onPressed: () {
-                          launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                          launchUrl(Uri.parse(
+                              'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
                         },
-                        child: Text('Update',
-                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        child: Text(
+                          'Update',
+                          style: TextStyle(
+                              color: Colors.green, fontWeight: FontWeight.bold),
                         ),
                       ),
                       TextButton(
@@ -477,5 +503,4 @@ class _LoginDemoState extends State<UserNamePage> {
       print('Error: $e');
     }
   }
-
 }

@@ -8,7 +8,41 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'Magpie.dart';
 import 'Utils&Config/all_routs.dart';
+import 'package:http/http.dart' as http;
 
+import 'Utils&Config/api.dart';
+
+class ApiService {
+  static const String apiUrl = 'https://api.aceventura.in/demo/evolvuURL/get_url';
+
+  // Function to call the API and process the response
+  Future<String> fetchUrl() async {
+    try {
+      // Make the GET request
+      final response = await http.get(Uri.parse(GET_URL));
+
+      // Check if the request was successful (status code 200)
+      if (response.statusCode == 200) {
+        // Get the response body
+        String responseBody = response.body;
+
+        // Remove double quotes from the response
+        String baseUrl = responseBody.replaceAll('"', '');
+
+        // Unescape the JSON string (replace \/ with /)
+        baseUrl = baseUrl.replaceAll(r'\/', '/');
+
+        return baseUrl;
+      } else {
+        // Handle non-200 status codes
+        throw Exception('Failed to load data: ${response.statusCode}');
+      }
+    } catch (error) {
+      // Handle any errors that occur during the request
+      throw Exception('Error: $error');
+    }
+  }
+}
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 

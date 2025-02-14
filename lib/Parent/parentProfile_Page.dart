@@ -734,13 +734,13 @@ class _ParentProfilePage extends State<ParentProfilePage> {
                           ),
                           SizedBox(height: 10),
 
-                          ],
-                        ),
+                        ],
+                      ),
 
 
-                        SizedBox(
-                          height: 20.h,
-                        ),
+                      SizedBox(
+                        height: 20.h,
+                      ),
                       ElevatedButton(
                         onPressed: () async {
 
@@ -994,7 +994,7 @@ class BirthdatTextField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               labelText,
               style: const TextStyle(

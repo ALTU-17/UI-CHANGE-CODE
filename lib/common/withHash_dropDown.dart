@@ -26,10 +26,19 @@ class HashLabeledDropdown extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: RichText(
               text: TextSpan(
                 children: [
+
+                  TextSpan(
+                    text: label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.0,
+                      color: Colors.black,
+                    ),
+                  ),
                   if (isRequired) // Add red asterisk if required
                     const TextSpan(
                       text: '* ',
@@ -38,14 +47,6 @@ class HashLabeledDropdown extends StatelessWidget {
                         fontSize: 14.0,
                       ),
                     ),
-                  TextSpan(
-                    text: label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.0,
-                      color: Colors.black,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -71,7 +72,7 @@ class HashLabeledDropdown extends StatelessWidget {
                       child: Text(
                         value,
                         style: const TextStyle(
-                          fontSize: 16.0,
+                          fontSize: 14.0,
                           fontWeight: FontWeight.normal, // Ensure text is not bold
                           color: Colors.black, // Set color explicitly if needed
                         ),

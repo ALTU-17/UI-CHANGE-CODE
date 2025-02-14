@@ -564,12 +564,12 @@ class _ParentProfilePage extends State<ParentProfilePage> {
 
                       StuEditTextField(
                         labelText: 'Email id',
-                        initialValue: ParentDetmod?.fEmail ?? '',
+                        initialValue: ParentDetmod?.mEmailid ?? '',
                         keyboardType: TextInputType.name,
                         isRequired: true,
                         onChanged: (value) {
                           setState(() {
-                            ParentDetmod?.fEmail = value;
+                            ParentDetmod?.mEmailid = value;
                           });
                         },
                       ),
@@ -734,13 +734,13 @@ class _ParentProfilePage extends State<ParentProfilePage> {
                           ),
                           SizedBox(height: 10),
 
-                          ],
-                        ),
+                        ],
+                      ),
 
 
-                        SizedBox(
-                          height: 20.h,
-                        ),
+                      SizedBox(
+                        height: 20.h,
+                      ),
                       ElevatedButton(
                         onPressed: () async {
 
@@ -867,10 +867,10 @@ class _ParentProfilePage extends State<ParentProfilePage> {
                                 'f_office_tel': ParentDetmod?.fOfficeTel ?? '',
                                 'f_mobile': ParentDetmod?.fMobile ?? '',
                                 'f_email': ParentDetmod?.fEmail ?? '',
-                                'parent_adhar_no': ParentDetmod?.parentAdharNo ?? '',
 
                                 'mother_occupation': ParentDetmod?.motherOccupation ?? '',
-                                'm_office_add': ParentDetmod?.mEmailid ?? '',
+                                'm_emailid': ParentDetmod?.mEmailid ?? '',
+                                'm_office_add': ParentDetmod?.mOfficeAdd ?? '',
                                 'm_office_tel': ParentDetmod?.mOfficeTel,
                                 'm_mobile': ParentDetmod?.mMobile,
                                 // 'academic_yr': academic_yrstr,
@@ -994,7 +994,7 @@ class BirthdatTextField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               labelText,
               style: const TextStyle(

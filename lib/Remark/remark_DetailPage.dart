@@ -190,8 +190,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
         if (attachment.fileSize == 0) {
           _showSnackBar('File not uploaded properly');
         } else {
-          String downloadUrl =
-              '$projectUrl/uploads/remark/${widget.remarkInfo.remarkDate}/${widget.remarkInfo.remarkId}/${attachment.imageName}';
+          String downloadUrl = '$projectUrl/uploads/remark/${widget.remarkInfo.remarkDate}/${widget.remarkInfo.remarkId}/${attachment.imageName}';
           if (Platform.isAndroid) {
             await downloadFile(downloadUrl, context, attachment.imageName);
           } else if (Platform.isIOS) {
@@ -211,7 +210,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
 
   downloadFile(String url, BuildContext context, String name) async {
     var directory =
-    Directory("/storage/emulated/0/Download/Remarks");
+    Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Remarks");
 
     if (!await directory.exists()) {
       await directory.create(recursive: true);

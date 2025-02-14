@@ -22,6 +22,7 @@ import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
+import '../main.dart';
 import 'DrawerParentProfile.dart';
 
 class ParentDashBoardPage extends StatefulWidget {
@@ -196,7 +197,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   void initState() {
     super.initState();
     _getSchoolInfo();
-    getVersion();
+    getVersion(context);
   }
 
   @override
@@ -212,7 +213,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
       ),
       CalendarPage(),
 
-      Dashboardonlinefeespayment(regId: reg_id, paymentUrlShare: paymentUrlShare, receiptUrl: receiptUrl, shortName: shortName, academicYr: academic_yr, receipt_button: receipt_button,),
+      // Dashboardonlinefeespayment(regId: reg_id, paymentUrlShare: paymentUrlShare, receiptUrl: receiptUrl, shortName: shortName, academicYr: academic_yr, receipt_button: receipt_button,),
       ParentProfilePage(),
     ];
 
@@ -264,6 +265,8 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           body: Stack(
             children: [
               Container(
+                width: double.infinity, // Ensure it takes full width
+                height: double.infinity, // Ensure it takes full height
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.pink, Colors.blue],
@@ -283,61 +286,108 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
 
 
 
-  Future<void> getVersion() async {
-    final url = Uri.parse('http://aceventura.in/demo/evolvuUserService/flutter_latest_version'); // Assuming Config.newLogin is your base URL
+  Future<void> getVersion(BuildContext _context) async {
+
+    String BaseURl = "";
+    final apiService = ApiService();
+    try {
+      // Call the API and get the cleaned response
+      BaseURl = await apiService.fetchUrl();
+      print('BaseURl Cleaned URL: $BaseURl');
+    } catch (error) {
+      // Handle any errors
+      print('BaseURl Error: $error');
+    }
+    print('lastest_version1122 => ${BaseURl + 'flutter_latest_version'}');
+
+
+    print('latest_version11 => ${BaseURl + 'flutter_latest_version'}');
+
+    final url = Uri.parse(BaseURl + 'flutter_latest_version'); // Assuming BaseURl is your base URL
 
     try {
       final response = await http.post(url);
-      print('lastest_version => ${response.statusCode}');
+      print('latest_version => ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        print('lastest_version => ${response.body}');
+        print('latest_version => ${response.body}');
 
         // Check if jsonData is a list and extract the first item if it is
         if (jsonData is List && jsonData.isNotEmpty) {
           final packageInfo = await PackageInfo.fromPlatform();
           print('Current_version => ${packageInfo.version}');
 
-          final androidVersion = jsonData[0]['latest_version'] as String;
+          final androidVersion = jsonData[0]['latest_version'] as String; // Ensure this is a String
           final releaseNotes = jsonData[0]['release_notes'] as String;
           final forcedUpdate = jsonData[0]['forced_update'] as String;
 
           if (androidVersion != null) {
             print('Current_version => 22222 ${packageInfo.version}');
 
-            final androidVersionNum = double.parse(androidVersion);
-            final localAndroidVersion = packageInfo.version; // Assuming local version
+            final localAndroidVersion = packageInfo.version;
 
-            // Uncomment the following if-statement for version comparison if needed
-            if (localAndroidVersion != androidVersionNum) {
+            // Compare versions
+            if (_isVersionGreater(androidVersion, localAndroidVersion)) {
               print('Current_version => 3333 ${packageInfo.version}');
 
-            showDialog(
-              context: _context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Text('V ${packageInfo.version}'), // Local version title
-                  content: Text(releaseNotes),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
-                      },
-                      child: Text('Update',
-                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text('Cancel'),
-                    ),
-                  ],
+              if (forcedUpdate == 'N') {
+                print('Current_version => NNNNN ${packageInfo.version}');
+
+                showDialog(
+                  context: _context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('V ${packageInfo.version}'),
+                      content: Text(releaseNotes),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            launchUrl(Uri.parse(
+                                'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                          },
+                          child: Text(
+                            'Update',
+                            style: TextStyle(
+                                color: Colors.green, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text('Cancel'),
+                        ),
+                      ],
+                    );
+                  },
                 );
-              },
-            );
+              } else if (forcedUpdate == 'Y') {
+                print('Current_version => 44444 ${packageInfo.version}');
+
+                showDialog(
+                  context: _context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('V ${packageInfo.version}'),
+                      content: Text(releaseNotes),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            launchUrl(Uri.parse(
+                                'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                          },
+                          child: Text(
+                            'Update',
+                            style: TextStyle(
+                                color: Colors.green, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
             }
           }
         } else {
@@ -350,6 +400,30 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
       print('Error: $e');
     }
   }
+
+// Helper function to compare version strings
+  bool _isVersionGreater(String newVersion, String currentVersion) {
+    // Split version strings into parts
+    List<int> newParts = newVersion.split('.').map((e) => int.parse(e)).toList();
+    List<int> currentParts = currentVersion.split('.').map((e) => int.parse(e)).toList();
+
+    // Compare each part of the version
+    for (int i = 0; i < newParts.length; i++) {
+      if (i >= currentParts.length) {
+        // If current version has fewer parts, new version is greater
+        return true;
+      }
+      if (newParts[i] > currentParts[i]) {
+        return true;
+      } else if (newParts[i] < currentParts[i]) {
+        return false;
+      }
+    }
+
+    // If all parts are equal, new version is not greater
+    return false;
+  }
+
 
   Widget buildMyNavBar() {
     return Container(
@@ -414,7 +488,20 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
     bool isSelected = pageIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() => pageIndex = index),
+      onTap: () {
+        if (index == 2) {
+          // Navigate to the QR Code screen without modifying pageIndex
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) =>
+         Dashboardonlinefeespayment(regId: reg_id, paymentUrlShare: paymentUrlShare, receiptUrl: receiptUrl, shortName: shortName, academicYr: academic_yr, receipt_button: receipt_button,),)
+
+        );
+        } else {
+          // Change pageIndex for BottomNavigationBar screens
+          setState(() => pageIndex = index);
+        }
+      },
       child: Container(
         height: 45,
         width: 45,

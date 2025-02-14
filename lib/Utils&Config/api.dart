@@ -1,10 +1,18 @@
-const String ROOT = "http://aceventura.in/demo/evolvuUserService/validate_user";
+const String GET_URL = "https://api.aceventura.in/demo/evolvuURL/get_url";
+
+
+// const String GET_URL = "https://api.aceventura.in/evolvuURL/get_url";
+
+
+
 // const String ROOT = "http://aceventura.in/evolvuUserService/validate_user";
+const String ROOT = "http://aceventura.in/demo/evolvuUserService/validate_user";
 
 // const String VERSION = ;
 const String LOGIN = "get_login";
 const String remark_read_log_create = "remark_read_log_create";
 const String SMS = "get_notice_with_multiple_attachment";
+
 
 
 // params.put("parent_id", parentId);

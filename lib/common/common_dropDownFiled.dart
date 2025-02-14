@@ -21,14 +21,14 @@ class LabeledDropdown extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               label,
               style: const TextStyle(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold,
                 fontSize: 14.0,
                 color: Colors.black,
               ),

@@ -80,11 +80,13 @@ class RemarkNoteCard extends StatelessWidget {
   final String teacher;
   final String remarksubject;
   final String readStatus;
+  final String acknowledge;
   final VoidCallback onTap;
   final List<Attachment> showDownloadIcon; // New parameter to control visibility
 
   const RemarkNoteCard({
     Key? key,
+    required this.acknowledge,
     required this.date,
     required this.teacher,
     required this.remarksubject,
@@ -175,14 +177,16 @@ class RemarkNoteCard extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             top: 10,
             right: 12,
             child: Icon(
-              Icons.remove_red_eye,
-              color: Color.fromARGB(255, 175, 49, 40),
+              acknowledge == 'N' ? Icons.thumb_up : Icons.remove_red_eye, // Show thumbs-up for 'N', eye for 'Y'
+              color: acknowledge == 'N' ? Colors.green : Colors.red, // Green for thumbs-up, black for eye
             ),
           ),
+
+
           if (showDownloadIcon.isNotEmpty) // Conditional rendering of the download icon
             const Positioned(
               top: 75,

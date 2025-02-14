@@ -944,7 +944,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                   ),
                 ),
                 Positioned(
-                  top: 110,
+                  top: 90,
                   left: 0,
                   right: 0,
                   bottom: 0,
@@ -1212,7 +1212,7 @@ Container buildMyNavBar(BuildContext context) {
       children: [
         _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
         _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-        _buildNavItem(icon: Icons.person, label: 'Profile',index: 3), // Center icon for Profile
+        _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
         _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
       ],
     ),

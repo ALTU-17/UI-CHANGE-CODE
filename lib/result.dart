@@ -221,8 +221,7 @@ class _ResultPageState extends State<ResultPage> {
             }
 
             // Check if there are other fields like 'message1_url' and 'message2_url'
-            String message1Url =
-                data['message1_url'] ?? ''; // Default to empty if null
+            String message1Url = data['message1_url'] ?? ''; // Default to empty if null
             String message2Url = data['message2_url'] ?? '';
 
             print('message1 URL: $message1Url');

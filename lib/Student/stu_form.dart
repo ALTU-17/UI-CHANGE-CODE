@@ -352,6 +352,7 @@ class _StudentFormState extends State<StudentForm> {
     'Private Van',
     'Self'
   ];
+
   // final List<String> admittedInClass = ['LKG', 'UKG', 'Private Van', 'Self'];
 
   // Values sent to the server
@@ -918,8 +919,7 @@ class _StudentFormState extends State<StudentForm> {
                   onChanged: (String? newValue) {
                     setState(() {
                       if (newValue != null) {
-                        childInfo?.bloodGroup =
-                            newValue; // Update the selected value
+                        childInfo?.bloodGroup = newValue; // Update the selected value
                       }
                     });
                   },

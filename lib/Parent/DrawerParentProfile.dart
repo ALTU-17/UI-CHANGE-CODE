@@ -267,12 +267,12 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
     if (response.statusCode == 200) {
       print('Contact details updated successfully: ${response.body}');
       Fluttertoast.showToast(
-        msg: "Parent Mobile no. updated successfully",
+        msg: "Parent Mobile no. Selected",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         timeInSecForIosWeb: 1,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
+        backgroundColor: Colors.white,
+        textColor: Colors.black,
         fontSize: 16.0,
       );
     } else {
@@ -988,7 +988,7 @@ class BirthdatTextField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               labelText,
               style: const TextStyle(

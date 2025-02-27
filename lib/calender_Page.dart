@@ -1,10 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
-
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key});
+  final String regId;
+
+  CalendarPage({super.key, required this.regId});
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -62,3 +67,4 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 }
+

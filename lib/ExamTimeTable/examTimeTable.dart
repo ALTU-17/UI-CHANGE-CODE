@@ -225,72 +225,66 @@ class _ExamTimeTablePageState extends State<ExamTimeTablePage> {
                           SizedBox(
                             height: 20.h,
                           ),
+
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                            child: Container(
-                              padding: EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                // color: Colors.white, // Light background
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey), // Subtle border
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 6,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Description ', // Bullet point
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white38, // Attractive bullet color
+                            child: Visibility(
+                              visible: snapshot.data!.first.description.isNotEmpty, // Condition to check if description is not empty
+                              child: Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    height: 10.h,
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: snapshot.data!.first.description
-                                        .split('\n') // Split by new line
-                                        .map(
-                                          (line) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 6.0), // Space between lines
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-
-                                            Text(
-                                              '• ', // Bullet point
-                                              style: TextStyle(
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white38, // Attractive bullet color
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                line, // Text content
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.black87,
-                                                  height: 1.4, // Line spacing for better readability
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Description ',
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white38,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 10.h,
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: snapshot.data!.first.description
+                                          .split('\n')
+                                          .map(
+                                            (line) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 6.0),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  line,
+                                                  style: TextStyle(
+                                                    fontSize: 14.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white38,
+                                                    height: 1.4,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    )
-                                        .toList(),
-                                  ),
-                                ],
+                                      )
+                                          .toList(),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

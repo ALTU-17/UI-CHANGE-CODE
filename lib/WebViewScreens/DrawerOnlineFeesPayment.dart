@@ -47,6 +47,8 @@ class _PaymentWebviewState extends State<DrawerOnlineFeesPayment> {
   }
 
   Future<void> _initializeData() async {
+    print('response.body URL: Draw ${widget.paymentUrlShare}');
+
     prefs = await SharedPreferences.getInstance();
     name = prefs.getString('name');
     newUrl = prefs.getString('newUrl');

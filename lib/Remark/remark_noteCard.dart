@@ -182,7 +182,7 @@ class RemarkNoteCard extends StatelessWidget {
             right: 12,
             child: Icon(
               acknowledge == 'N' ? Icons.thumb_up : Icons.remove_red_eye, // Show thumbs-up for 'N', eye for 'Y'
-              color: acknowledge == 'N' ? Colors.green : Colors.red, // Green for thumbs-up, black for eye
+              color: acknowledge == 'N' ? Colors.green : Colors.black, // Green for thumbs-up, black for eye
             ),
           ),
 

@@ -82,7 +82,7 @@ Future<void> _getSchoolInfo() async {
       url = parsedData['url'];
       durl = parsedData['project_url'];
 
-      // fetchDashboardData(url);
+      fetchDashboardData(url);
 
       print('Short Name: $shortName');
       print('URL: $url');
@@ -95,61 +95,67 @@ Future<void> _getSchoolInfo() async {
   }
 }
 
-  Future<void> fetchDashboardData(String url) async {
-    final url1 = Uri.parse(url +'show_icons_parentdashboard_apk');
-    // print('Receipt URL: $shortName');
+Future<void> fetchDashboardData(String url) async {
+  final url1 = Uri.parse(url + 'show_icons_parentdashboard_apk');
 
-    try {
-      final response = await http.post(url1,
-        body: {'short_name': shortName},
-      );
+  try {
+    final response = await http.post(
+      url1,
+      body: {'short_name': shortName},
+    );
 
-      if (response.statusCode == 200) {
-        print('response.body URL: ${response.body}');
+    if (response.statusCode == 200) {
+      print('response.body URL: 111111');
+      print('response.body URL: ${response.body}');
+      print('response.body URL: 222222');
 
-        final Map<String, dynamic> data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
-        // Extract the required fields
-        // message1_url = data['message1_url'];
-        // message2_url = data['message2_url'];
+      // Extract the required fields with null safety
+      receipt_button = data['receipt_button'] ?? 0;
+      receiptUrl = data['receipt_url'] ?? '';
+      paymentUrl = data['payment_url'] ?? '';
+      smartchat_url = data['smartchat_url'] ?? '';
 
-        receipt_button = data['receipt_button'];
-        receiptUrl = data['receipt_url'];
-        paymentUrl = data['payment_url'];
-        smartchat_url = data['smartchat_url'];
-        String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
+      String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
 
-        PostMsg1();
+      PostMsg1();
 
-        String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
-        username = username;
+      String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
+      username = username;
 
-        String secretKey = 'aceventura@services';
+      String secretKey = 'aceventura@services';
 
-        String encryptedUsername = encryptUsername(username, secretKey);
+      String encryptedUsername = encryptUsername(username, secretKey);
 
-        paymentUrlShare = paymentUrl + "?reg_id=" + reg_id +
-            "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
+      paymentUrlShare = paymentUrl +
+          "?reg_id=" +
+          reg_id +
+          "&academic_yr=" +
+          academic_yr +
+          "&user_id=" +
+          URi_username +
+          "&encryptedUsername=" +
+          encryptedUsername +
+          "&short_name=" +
+          shortName;
 
-        print('message1_url : ${data['message1_url']}');
-        print('message2_url : ${data['message2_url']}');
+      print('message1_url : ${data['message1_url']}');
+      print('message2_url : ${data['message2_url']}');
 
-        print('Encrypted Username: $paymentUrlShare');
-        print('Encrypted Username: $encryptedUsername');
-        // Use these values as needed
+      print('Encrypted Username: $paymentUrlShare');
+      print('Encrypted Username: $encryptedUsername');
 
-        print('Receipt URL: $receiptUrl');
-        print('Payment URL: $paymentUrl');
-        print('smartchat_url : $smartchat_url');
-
-        // You can store these values in variables or use them directly
-      } else {
-        print('Failed to load data: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error: $e');
+      print('Receipt URL: $receiptUrl');
+      print('Payment URL: $paymentUrl');
+      print('smartchat_url : $smartchat_url');
+    } else {
+      print('Failed to load data: ${response.statusCode}');
     }
+  } catch (e) {
+    print('Error: $e');
   }
+}
 
   String encryptUsername(String username, String secretKey) {
     // Combine the username and secretKey
@@ -211,7 +217,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
           });
         },
       ),
-      CalendarPage(),
+      CalendarPage(regId: reg_id),
 
       // Dashboardonlinefeespayment(regId: reg_id, paymentUrlShare: paymentUrlShare, receiptUrl: receiptUrl, shortName: shortName, academicYr: academic_yr, receipt_button: receipt_button,),
       ParentProfilePage(),
@@ -439,8 +445,8 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
         children: [
           _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
           _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-          _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 2), // Center icon
-          _buildNavItem(icon: Icons.person, label: 'Profile', index: 3),
+          _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 5), // Center icon
+          _buildNavItem(icon: Icons.person, label: 'Profile', index: 2),
           _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
         ],
       ),
@@ -489,7 +495,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
 
     return GestureDetector(
       onTap: () {
-        if (index == 2) {
+        if (index == 5) {
           // Navigate to the QR Code screen without modifying pageIndex
           Navigator.push(
             context,

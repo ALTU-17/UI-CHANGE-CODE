@@ -786,7 +786,7 @@ class _ParentProfilePage extends State<ParentProfilePage> {
 
                           String? memail = ParentDetmod?.mEmailid;
 
-                          if (memail == '') {
+                          if (ParentDetmod?.mEmailid == '') {
                             Fluttertoast.showToast(
                               msg: "Please enter Mother email address",
                               toastLength: Toast.LENGTH_SHORT,

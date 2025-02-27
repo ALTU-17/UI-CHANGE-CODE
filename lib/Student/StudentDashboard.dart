@@ -21,6 +21,7 @@ import '../ExamTimeTable/timeTable.dart';
 import '../Notice_SMS/notice_notePage.dart';
 import '../QR/QR_Code.dart';
 import '../ResultChart.dart';
+import '../Utils&Config/api.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../WebViewScreens/SmartChat_WebView.dart';
 import '../common/rotatedDivider_Card.dart';
@@ -1036,6 +1037,13 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                                       ],
                                     ),
                                   ),
+
+                                  // SizedBox(width: 45.w),
+
+                                  if (GET_URL == "https://api.aceventura.in/evolvuURL/get_url")
+                                    BlinkingBadge(text: 'LIVE', textColor: Colors.red)
+                                  else
+                                    BlinkingBadge(text: 'TEST', textColor: Colors.green),
                                 ],
                               ),
                             ),

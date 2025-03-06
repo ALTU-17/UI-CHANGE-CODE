@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:evolvu/Homework/homework_DetailCard.dart';
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:evolvu/Homework/homeWork_noteCard.dart';
@@ -28,7 +29,7 @@ class HomeWorkNotePage extends StatefulWidget {
 class _HomeWorkNotePage extends State<HomeWorkNotePage> {
   late Future<List<Homework>> futureNotes;
   String shortName = "";
-  String academic_yr = "";
+  // String academic_yr = "";
   String reg_id = "";
   String url = "";
 
@@ -46,7 +47,7 @@ class _HomeWorkNotePage extends State<HomeWorkNotePage> {
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
-        academic_yr = logUrlsparsed['academic_yr'];
+        // academic_yr = logUrlsparsed['academic_yr'];
         reg_id = logUrlsparsed['reg_id'];
       } catch (e) {
         print('Error parsing logUrls: $e');

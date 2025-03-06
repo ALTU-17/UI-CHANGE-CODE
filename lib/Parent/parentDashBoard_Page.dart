@@ -1,25 +1,25 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:evolvu/calender_Page.dart';
-import 'package:evolvu/common/drawerAppBar.dart';
 import 'package:evolvu/Parent/parentProfile_Page.dart';
 import 'package:evolvu/Student/student_card.dart';
+import 'package:evolvu/calender_Page.dart';
 import 'package:evolvu/username_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+
+import '../AcademicYearProvider.dart';
+import '../ChangeAcademicYear.dart';
 import '../QR/QR_Code.dart';
-import '../Utils&Config/api.dart';
 import '../WebViewScreens/DashboardOnlineFeesPayment.dart';
 import '../WebViewScreens/DrawerOnlineFeesPayment.dart';
-import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
-import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
 import '../main.dart';
@@ -51,7 +51,9 @@ String smartchat_url="";
 String username = "";
 
 
-Future<void> _getSchoolInfo() async {
+Future<void> _getSchoolInfo(BuildContext context) async {
+  final academicYearProvider = Provider.of<AcademicYearProvider>(context, listen: false);
+
   final prefs = await SharedPreferences.getInstance();
   String? schoolInfoJson = prefs.getString('school_info');
   String? logUrls = prefs.getString('logUrls');
@@ -62,9 +64,14 @@ Future<void> _getSchoolInfo() async {
       print('logUrls====\\\\\11111: $logUrls');
 
       user_id = logUrlsparsed['user_id'];
-      academic_yr = logUrlsparsed['academic_yr'];
+      // academic_yr = logUrlsparsed['academic_yr'];
       reg_id = logUrlsparsed['reg_id'];
 
+
+      academicYearProvider.setAcademicYear(logUrlsparsed['academic_yr']);
+
+      print('academic_yr ID: ${academicYearProvider.academic_yr}');
+      academic_yr = academicYearProvider.academic_yr;
       print('academic_yr ID: $academic_yr');
       print('reg_id: $reg_id');
     } catch (e) {
@@ -202,7 +209,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   @override
   void initState() {
     super.initState();
-    _getSchoolInfo();
+    _getSchoolInfo(context);
     getVersion(context);
   }
 
@@ -210,7 +217,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
   Widget build(BuildContext context) {
     _context = context;
     final pages = [
-      StudentCard(
+      StudentCard(acd:widget.academic_yr,
         onTap: (int index) {
           setState(() {
             pageIndex = index;
@@ -655,13 +662,15 @@ class CustomPopup extends StatelessWidget {
         },
       ),
 
+
+
       CardItem(
-        imagePath: 'assets/ace.png',
-        title: 'About Us',
+        imagePath: 'assets/almanac.png',
+        title: 'Change Academic Year',
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AboutUsPage(academic_yr:academic_yr,shortName: shortName)),
+            MaterialPageRoute(builder: (_) => ChangeAcademicYearScreen(academic_yr:academic_yr,shortName: shortName)),
           );
         },
       ),
@@ -675,6 +684,17 @@ class CustomPopup extends StatelessWidget {
           Share.share(
             'Download Evolvu: Smart Schooling App https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool', // Replace with your app link
             subject: 'Parent App!',
+          );
+        },
+      ),
+
+      CardItem(
+        imagePath: 'assets/ace.png',
+        title: 'About Us',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AboutUsPage(academic_yr:academic_yr,shortName: shortName)),
           );
         },
       ),
@@ -692,7 +712,7 @@ class CustomPopup extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: Container(
               width: MediaQuery.of(context).size.width * 0.9,
-              padding: EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 color: Color.fromARGB(255, 245, 241, 241),
                 borderRadius: BorderRadius.circular(8),
@@ -713,7 +733,7 @@ class CustomPopup extends StatelessWidget {
                         Text(
                           cardItem.title,
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14),
+                          style: TextStyle(fontSize: 13),
                         ),
                       ],
                     ),

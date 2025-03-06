@@ -1,6 +1,5 @@
 import 'package:evolvu/common/common_style.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
 import '../Teacher/Attachment.dart';
@@ -68,12 +67,13 @@ class Remark {
       teacherName: json['teachername']?.toString() ?? '',
       remarkRLogId: json['remark_r_log_id']?.toString() ?? '',
       readStatus: json['read_status']?.toString() ?? '',
-      imageList: (json['image_list'] as List)
-          .map((item) => Attachment.fromJson(item))
-          .toList(),
+      imageList: (json['image_list'] as List?)
+          ?.map((item) => Attachment.fromJson(item))
+          .toList() ??
+          [],
     );
   }
-  }
+}
 
 class RemarkNoteCard extends StatelessWidget {
   final String date;
@@ -82,7 +82,7 @@ class RemarkNoteCard extends StatelessWidget {
   final String readStatus;
   final String acknowledge;
   final VoidCallback onTap;
-  final List<Attachment> showDownloadIcon; // New parameter to control visibility
+  final List<Attachment> showDownloadIcon;
 
   const RemarkNoteCard({
     Key? key,
@@ -92,10 +92,8 @@ class RemarkNoteCard extends StatelessWidget {
     required this.remarksubject,
     required this.readStatus,
     required this.onTap,
-    required this.showDownloadIcon, // Initialize it
+    required this.showDownloadIcon,
   }) : super(key: key);
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +111,7 @@ class RemarkNoteCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.0),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(15.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -123,53 +121,21 @@ class RemarkNoteCard extends StatelessWidget {
                         'assets/studying.png',
                         height: 50,
                       ),
-                      SizedBox(width: 15),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                const TextSpan(
-                                  text: 'Date: ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: formattedDate,
-                                ),
-                              ],
-                            ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildRichText('Date: ', formattedDate),
+                              const SizedBox(height: 5),
+                              _buildRichText('Teacher: ', trimTeacherName(teacher)),
+                              const SizedBox(height: 5),
+                              _buildRichText('Remark Subject: ', remarksubject, maxLines: 1),
+                            ],
                           ),
-                          const SizedBox(height: 5),
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                const TextSpan(
-                                  text: 'Teacher: ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: '${trimTeacherName(teacher)}',
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            'Remark Subject: ',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            remarksubject,
-                            overflow: TextOverflow.visible,
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -181,15 +147,13 @@ class RemarkNoteCard extends StatelessWidget {
             top: 10,
             right: 12,
             child: Icon(
-              acknowledge == 'N' ? Icons.thumb_up : Icons.remove_red_eye, // Show thumbs-up for 'N', eye for 'Y'
-              color: acknowledge == 'N' ? Colors.green : Colors.black, // Green for thumbs-up, black for eye
+              acknowledge == 'N' ? Icons.thumb_up : Icons.remove_red_eye,
+              color: acknowledge == 'N' ? Colors.white : Colors.red,
             ),
           ),
-
-
-          if (showDownloadIcon.isNotEmpty) // Conditional rendering of the download icon
+          if (showDownloadIcon.isNotEmpty)
             const Positioned(
-              top: 75,
+              top: 85,
               right: 12,
               child: Icon(
                 Icons.download_for_offline,
@@ -200,11 +164,28 @@ class RemarkNoteCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildRichText(String label, String value, {int maxLines = 1}) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: label,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(color: Colors.black),
+          ),
+        ],
+      ),
+      overflow: TextOverflow.ellipsis,
+      maxLines: maxLines,
+    );
+  }
+
   String trimTeacherName(String name) {
     List<String> parts = name.split(' ');
-    if (parts.length > 2) {
-      return '${parts[0]} ${parts[1]}'; // Return the first two parts
-    }
-    return name; // If there's no second space, return the original name
+    return parts.length > 1 ? '${parts[0]} ${parts[1]}' : name;
   }
 }

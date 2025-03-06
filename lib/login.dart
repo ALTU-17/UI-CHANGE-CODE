@@ -13,9 +13,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 // Update the import path accordingly
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'AcademicYearProvider.dart';
 import 'Login.dart';
 import 'Utils&Config/api.dart';
 import 'forgotPassword.dart';
@@ -82,12 +84,13 @@ class _LoginState extends State<LoginPage> {
   bool _passwordVisible = false;
   bool shouldShowText = false; // Set this based on your condition
   bool _isLoading = false; // Add this line
-
+  String teacherApkUrl = "";
   String url = "";
   String? token;
   @override
   void initState() {
     super.initState();
+    _getSchoolInfo();
     requestPermission(); // Request notification permission
     getToken(); // Get FCM token
 
@@ -95,6 +98,35 @@ class _LoginState extends State<LoginPage> {
     email = TextEditingController(text: widget.emailstr);
     checkLoginStatus(); // Check login status when the login screen is initialized
   }
+
+  Future<void> _getSchoolInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? schoolInfoJson = prefs.getString('school_info');
+
+    if (schoolInfoJson != null) {
+      try {
+        Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
+
+        setState(() {
+          shortName = parsedData['short_name'];
+          url = parsedData['url'];
+          durl = parsedData['project_url'];
+          teacherApkUrl = parsedData['teacherapk_url']; // Ensure this updates
+        });
+
+        print('Updated School Info:');
+        print('Short Name: $shortName');
+        print('URL: $url');
+        print('Project URL: $durl');
+        print('Teacher APK URL: $teacherApkUrl');
+      } catch (e) {
+        print('Error parsing school info: $e');
+      }
+    } else {
+      print('School info not found in SharedPreferences.');
+    }
+  }
+
 
   // Request Permission for Notifications
   void requestPermission() async {
@@ -160,12 +192,21 @@ class _LoginState extends State<LoginPage> {
         try {
           Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
 
+
+          setState(() {
+            shortName = parsedData['short_name'];
+            url = parsedData['url'];
+            durl = parsedData['project_url'];
+            teacherApkUrl = parsedData['teacherapk_url']; // Ensure this updates
+          });
+
+
           String schoolId = parsedData['school_id'];
           String name = parsedData['name'];
            shortName = parsedData['short_name'];
           schoolnamestr = parsedData['short_name'];
            url = parsedData['url'];
-          String teacherApkUrl = parsedData['teacherapk_url'];
+          // String teacherApkUrl = parsedData['teacherapk_url'];
           String projectUrl = parsedData['project_url'];
           String defaultPassword = parsedData['default_password'];
 
@@ -207,7 +248,8 @@ class _LoginState extends State<LoginPage> {
           setState(() {
             shouldShowText = false;
           });
-
+          final academicYearProvider =
+          Provider.of<AcademicYearProvider>(context, listen: false);
           // Parse the API response into SchoolInfo object
           LogUrls logUrls = LogUrls.fromJson(jsonDecode(response.body));
 
@@ -217,6 +259,8 @@ class _LoginState extends State<LoginPage> {
 
           // Extract the academic_yr field
           String academicYr = logUrls11['academic_yr'];
+          academicYearProvider.setAcademicYear(logUrls11['academic_yr']);
+
           print('logDetJson===>  $academicYr');
 
           // Store JSON string in shared preferences

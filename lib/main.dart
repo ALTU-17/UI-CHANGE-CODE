@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
+import 'AcademicYearProvider.dart';
 import 'Magpie.dart';
 import 'Utils&Config/all_routs.dart';
 import 'package:http/http.dart' as http;
@@ -60,7 +62,14 @@ void main() async {
     debugPrint("Firebase initialization failed: $e"); // Log the entire error for further debugging
   }
 
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AcademicYearProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 

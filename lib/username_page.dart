@@ -126,7 +126,7 @@ class _LoginDemoState extends State<UserNamePage> {
           // Store JSON string in shared preferences
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('school_info', schoolInfoJson);
-
+          await _getSchoolInfo();
           // Navigate to the login screen
           Navigator.push(
             context,

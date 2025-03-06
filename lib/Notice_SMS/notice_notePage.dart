@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:evolvu/common/common_style.dart';
@@ -33,7 +34,7 @@ class _NoticeNotePageState extends State<NoticeNotePage> {
 
   TextEditingController _searchController = TextEditingController();
   String shortName = "";
-  String academic_yr = "";
+  // String academic_yr = "";
   String reg_id = "";
   String url = "";
 
@@ -60,7 +61,7 @@ class _NoticeNotePageState extends State<NoticeNotePage> {
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
-        academic_yr = logUrlsparsed['academic_yr'];
+        // academic_yr = logUrlsparsed['academic_yr'];
         reg_id = logUrlsparsed['reg_id'];
       } catch (e) {
         print('Error parsing log URLs: $e');

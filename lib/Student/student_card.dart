@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:marquee/marquee.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:text_3d/text_3d.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 
+import '../AcademicYearProvider.dart';
 import '../Attendance/circleAttendance.dart';
 import '../ExamTimeTable/examTimeTable.dart';
 import '../Utils&Config/api.dart';
@@ -28,11 +30,14 @@ class StudentCard extends StatefulWidget {
 
 class _StudentCardState extends State<StudentCard> {
   List<Map<String, dynamic>> students = [];
+  bool showNoDataMessage = false;
   String shortName = "";
+  String AcademicResponse = "";
   String _message = "";
   String _message2 = "";
   String url = "";
   String academicYr = "";
+  String academicYrCard = "";
   String regId = "";
   List<Map<String, dynamic>> examData = [];
 
@@ -47,6 +52,9 @@ class _StudentCardState extends State<StudentCard> {
   String message2_url = "";
 
   Future<void> _fetchTodaysExams() async {
+    final academicYearProvider =
+        Provider.of<AcademicYearProvider>(context, listen: false);
+
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
@@ -54,23 +62,19 @@ class _StudentCardState extends State<StudentCard> {
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsParsed = json.decode(logUrls);
-        academicYr = logUrlsParsed['academic_yr'];
+        academicYrCard = logUrlsParsed['academic_yr'];
+        academicYearProvider.setAcademicYear(logUrlsParsed['academic_yr']);
+
+        print('academic_yr ID: ${academicYearProvider.academic_yr}');
+        academicYr = academicYearProvider.academic_yr;
+        print('academic_yr ID: $academic_yr');
+
         regId = logUrlsParsed['reg_id'];
       } catch (e) {
         print('Error parsing log URLs: $e');
       }
     } else {
       print('Log URLs not found in SharedPreferences.');
-    }
-
-    if (schoolInfoJson != null) {
-      try {
-        Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
-        shortName = parsedData['short_name'];
-        url = parsedData['url'];
-      } catch (e) {
-        print('Error parsing school info: $e');
-      }
     }
     fetchDashboardData(url);
     getSchoolNews(url); //get_news
@@ -104,7 +108,10 @@ class _StudentCardState extends State<StudentCard> {
     }
   }
 
-  Future<void> _getSchoolInfo() async {
+  Future<void> _getSchoolInfo(BuildContext context) async {
+    final academicYearProvider =
+        Provider.of<AcademicYearProvider>(context, listen: false);
+
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
@@ -112,8 +119,16 @@ class _StudentCardState extends State<StudentCard> {
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsParsed = json.decode(logUrls);
-        academicYr = logUrlsParsed['academic_yr'];
+        academicYrCard = logUrlsParsed['academic_yr'];
+        academicYearProvider.setAcademicYear(logUrlsParsed['academic_yr']);
+
+        print('academic_yr ID: ${academicYearProvider.academic_yr}');
+        academicYr = academicYearProvider.academic_yr;
+        print('academic_yr ID: $academic_yr');
+
         regId = logUrlsParsed['reg_id'];
+
+        _fetchTodaysExams();
       } catch (e) {
         print('Error parsing log URLs: $e');
       }
@@ -145,7 +160,23 @@ class _StudentCardState extends State<StudentCard> {
         );
         print('Response get_childs: ${response.body}');
 
+        AcademicResponse = response.body;
+
         if (response.statusCode == 200) {
+          if (response.body
+              .contains("Student data not found in current academic year")) {
+            setState(() {
+              students = []; // Clear the students list
+              showNoDataMessage = true; // Set a flag to show the message
+            });
+          } else {
+            List<dynamic> apiResponse = json.decode(response.body);
+            setState(() {
+              students = List<Map<String, dynamic>>.from(apiResponse);
+              showNoDataMessage = false; // Reset the flag
+            });
+          }
+
           List<dynamic> apiResponse = json.decode(response.body);
           setState(() {
             students = List<Map<String, dynamic>>.from(apiResponse);
@@ -266,8 +297,7 @@ class _StudentCardState extends State<StudentCard> {
   @override
   void initState() {
     super.initState();
-    _getSchoolInfo();
-    _fetchTodaysExams();
+    _getSchoolInfo(context);
   }
 
   Future<void> fetchDashboardData(String url) async {
@@ -286,8 +316,8 @@ class _StudentCardState extends State<StudentCard> {
         final Map<String, dynamic> data = jsonDecode(response.body);
 
         // Extract the required fields
-        message1_url = data['message1_url']?? '';
-        message2_url = data['message2_url']?? '';
+        message1_url = data['message1_url'] ?? '';
+        message2_url = data['message2_url'] ?? '';
 
         receiptUrl = data['receipt_url'] ?? '';
         paymentUrl = data['payment_url'] ?? '';
@@ -408,6 +438,7 @@ class _StudentCardState extends State<StudentCard> {
 
   @override
   Widget build(BuildContext context) {
+    final academicYearProvider = Provider.of<AcademicYearProvider>(context);
     return WillPopScope(
       onWillPop: () async {
         // Pop until reaching the HistoryTab route
@@ -415,13 +446,6 @@ class _StudentCardState extends State<StudentCard> {
         return false;
       },
       child: Scaffold(
-        // extendBodyBehindAppBar: true,
-        // appBar: AppBar(
-        //   // title: Text('My Child'),
-        //   backgroundColor: Colors.transparent,
-        //   elevation: 0,
-        // ),
-
         body: Stack(
           children: [
             Container(
@@ -434,14 +458,60 @@ class _StudentCardState extends State<StudentCard> {
               ),
             ),
             students.isEmpty
-                ? Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: showNoDataMessage
+                        ? Card(
+                            color: Colors.red,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: SizedBox(
+                                // Use SizedBox for Marquee
+                                height:
+                                    25, // Set a fixed height for the Marquee
+                                child: Marquee(
+                                  text:
+                                  "Student data not found in current academic year",
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                  scrollAxis: Axis.horizontal,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  blankSpace: 20.0,
+                                  velocity: 100.0,
+                                  // Adjust scrolling speed
+                                  pauseAfterRound: const Duration(seconds: 2),
+                                  // Adjust pause duration
+                                  startPadding: 20.0,
+                                  // Adjust start padding
+                                  accelerationDuration:
+                                      const Duration(seconds: 2),
+                                  // Adjust acceleration duration
+                                  accelerationCurve: Curves.linear,
+                                  // Adjust acceleration curve
+                                  decelerationDuration:
+                                      const Duration(milliseconds: 900),
+                                  // Adjust deceleration duration
+                                  decelerationCurve: Curves
+                                      .easeOut, // Adjust deceleration curve
+                                ),
+                              ),
+                            ),
+                          )
+                        : CircularProgressIndicator(),
+                  )
                 : ListView(
                     children: [
+                      if (academicYrCard != academic_yr) academicCard(),
                       ListView.builder(
-                        shrinkWrap:
-                            true, // Important to wrap the builder within the ListView
-                        physics:
-                            NeverScrollableScrollPhysics(), // Prevent nested scrolling
+                        shrinkWrap: true,
+                        // Important to wrap the builder within the ListView
+                        physics: NeverScrollableScrollPhysics(),
+                        // Prevent nested scrolling
                         itemCount: students.length,
                         itemBuilder: (context, index) {
                           return StudentCardItem(
@@ -461,11 +531,12 @@ class _StudentCardState extends State<StudentCard> {
                             secId: students[index]['section_id'] ?? '',
                             shortName: shortName,
                             url: url,
-                            academicYr: academicYr,
+                            academicYr: academicYearProvider.academic_yr,
                             onTap: widget.onTap,
                           );
                         },
                       ),
+
                       if (isBirthdayToday && birthdayStudentNames.isNotEmpty)
                         BirthDayCard(),
                       // Show the Birthday Card if today is someone's birthday
@@ -1435,6 +1506,50 @@ class _StudentCardState extends State<StudentCard> {
     );
   }
 
+  Widget academicCard() {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.8,
+      margin: const EdgeInsets.symmetric(horizontal: 14.0),
+      child: Card(
+        color: Colors.red,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: SizedBox(
+            // Use SizedBox for Marquee
+            height: 25, // Set a fixed height for the Marquee
+            child: Marquee(
+              text: 'You Changed the current Academic Year to $academic_yr.',
+              style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+              scrollAxis: Axis.horizontal,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              blankSpace: 20.0,
+              velocity: 100.0,
+              // Adjust scrolling speed
+              pauseAfterRound: const Duration(seconds: 2),
+              // Adjust pause duration
+              startPadding: 20.0,
+              // Adjust start padding
+              accelerationDuration: const Duration(seconds: 2),
+              // Adjust acceleration duration
+              accelerationCurve: Curves.linear,
+              // Adjust acceleration curve
+              decelerationDuration: const Duration(milliseconds: 900),
+              // Adjust deceleration duration
+              decelerationCurve: Curves.easeOut, // Adjust deceleration curve
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget BirthDayCard() {
     // Combine all birthday names in the format "Name1 and Name2"
     String combinedNames = birthdayStudentNames.join(" & ");
@@ -1747,7 +1862,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
       Uri.parse(widget.url + "get_student_attendance_percentage"),
       body: {
         'student_id': widget.studentId,
-        'acd_yr': widget.academicYr,
+        'acd_yr': academic_yr,
         'short_name': widget.shortName,
       },
     );
@@ -1778,7 +1893,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
               reg_id: reg_id,
               shortName: widget.shortName,
               studentId: widget.studentId,
-              academicYr: widget.academicYr,
+              academicYr: academic_yr,
               url: widget.url,
               firstName: widget.firstName,
               rollNo: widget.rollNo,
@@ -1821,24 +1936,21 @@ class _StudentCardItemState extends State<StudentCardItem> {
             padding: EdgeInsets.all(6.0), // Add padding inside the card
             child: Row(
               children: [
-
                 // Student Image Section
                 Column(
                   children: [
-                    if (GET_URL == "https://api.aceventura.in/evolvuURL/get_url")
+                    if (GET_URL ==
+                        "https://api.aceventura.in/evolvuURL/get_url")
                       BlinkingBadge(text: 'LIVE', textColor: Colors.red)
                     else
                       BlinkingBadge(text: 'TEST', textColor: Colors.green),
-
                     SizedBox(height: 3.h),
-
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(
-                        widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
+                        widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png',
                       ),
                     ),
-
                   ],
                 ),
                 SizedBox(width: 4.w), // Add space between image and details
@@ -1849,6 +1961,20 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // if('2024-2025' == academic_yr)
+                      // Text(
+                      //   widget.firstName +
+                      //       " " +
+                      //       widget.midName +
+                      //       " " +
+                      //       widget.lastName,
+                      //   style: TextStyle(
+                      //     fontWeight: FontWeight.bold,
+                      //     fontSize: 14.sp,
+                      //     color: Colors.black87,
+                      //   ),
+                      // ),
+
                       Text(
                         widget.firstName +
                             " " +
@@ -1890,7 +2016,6 @@ class _StudentCardItemState extends State<StudentCardItem> {
                           ),
                         ],
                       ),
-
                       SizedBox(height: 5.h),
                       Row(
                         children: [
@@ -1946,7 +2071,6 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     ],
                   ),
                 ),
-
               ],
             ),
           ),
@@ -1979,6 +2103,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
     return name; // If there's no second space, return the original name
   }
 }
+
 class BlinkingBadge extends StatefulWidget {
   final String text;
   final Color textColor;
@@ -1989,7 +2114,8 @@ class BlinkingBadge extends StatefulWidget {
   _BlinkingBadgeState createState() => _BlinkingBadgeState();
 }
 
-class _BlinkingBadgeState extends State<BlinkingBadge> with SingleTickerProviderStateMixin {
+class _BlinkingBadgeState extends State<BlinkingBadge>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
 
@@ -2001,7 +2127,8 @@ class _BlinkingBadgeState extends State<BlinkingBadge> with SingleTickerProvider
       vsync: this,
     )..repeat(reverse: true); // Repeats animation continuously
 
-    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.3).animate(_controller);
+    _opacityAnimation =
+        Tween<double>(begin: 1.0, end: 0.3).animate(_controller);
   }
 
   @override
@@ -2020,12 +2147,16 @@ class _BlinkingBadgeState extends State<BlinkingBadge> with SingleTickerProvider
           child: Card(
             color: Colors.white,
             elevation: 5,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Text(
                 widget.text,
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: widget.textColor),
+                style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: widget.textColor),
               ),
             ),
           ),

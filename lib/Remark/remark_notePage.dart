@@ -1,3 +1,4 @@
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:evolvu/Remark/remark_DeatilCard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,7 +24,7 @@ class RemarkNotePage extends StatefulWidget {
 class _RemarkNotePage extends State<RemarkNotePage> {
   late Future<List<Remark>> futureRemarks;
   String shortName = "";
-  String academic_yr = "";
+  // String academic_yr = "";
   String reg_id = "";
   String url = "";
   String Ack = "";
@@ -106,7 +107,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
-        academic_yr = logUrlsparsed['academic_yr'];
+        // academic_yr = logUrlsparsed['academic_yr'];
         reg_id = logUrlsparsed['reg_id'];
       } catch (e) {
         print('Error parsing log URLs: $e');

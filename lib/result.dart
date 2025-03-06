@@ -99,10 +99,10 @@ class _ResultPageState extends State<ResultPage> {
   int viewReportCardVisible = 0; // 1 means visible, 0 means hidden
   int resultChartVisible = 0; // 1 means visible, 0 means hidden
 
-  String ShowResult = 'Y';
+  String ShowResult = 'N';
   String CBSE_URL = '';
   bool isLoading = true;
-  bool showCBSE = false;
+  String showCBSE = 'N';
   String error_msg = "";
   bool error_msg_flag = false;
 
@@ -211,11 +211,13 @@ class _ResultPageState extends State<ResultPage> {
             if (data['cbse_reportcard'] == 1) {
               setState(() {
                 cbseCardVisible = 1;
+                showCBSE = "Y";
               });
               print('CBSE Report Card is visible');
             } else {
               setState(() {
                 cbseCardVisible = 0;
+                showCBSE = 'N';
               });
               print('CBSE Report Card is hidden');
             }
@@ -282,9 +284,14 @@ class _ResultPageState extends State<ResultPage> {
           if (examName == "Final exam" ||
               examName == "Term 1" ||
               examName == "Term 2") {
-            if (cbseCardVisible == 1 && widget.className == 9 ||
-                widget.className == 11) {
+            if (cbseCardVisible == 'Y' && widget.className == 9 || widget.className == 11) {
               CBSE_ReportCard();
+
+              if(CBSE_ReportCard() == 1){
+
+              } else {
+
+              }
             }
           }
         }

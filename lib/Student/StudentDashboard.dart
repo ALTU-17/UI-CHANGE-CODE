@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:crypto/crypto.dart';
 import 'package:evolvu/Homework/homeWork_notePage.dart';
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:evolvu/Remark/remark_notePage.dart';
 import 'package:evolvu/login.dart';
 import 'package:evolvu/Student/student_profile_page.dart';
@@ -94,7 +95,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   // ];
 
   String shortName = "";
-  String academic_yr = "";
+  // String academic_yr = "";
   String reg_id = "";
   String url = "";
   String imageUrl = "";
@@ -177,7 +178,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
         print('logUrls====\\\\\11111: $logUrls');
 
-        academic_yr = logUrlsparsed['academic_yr'];
+        // academic_yr = logUrlsparsed['academic_yr'];
         reg_id = logUrlsparsed['reg_id'];
 
         print('academic_yr ID: $academic_yr');
@@ -287,7 +288,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         String encryptedUsername = encryptUsername(username, secretKey);
 
         paymentUrlShare = paymentUrl + "?reg_id=" + widget.reg_id +
-            "&academic_yr=" + widget.academicYr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
+            "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
 
         print('Encrypted Username: $paymentUrlShare');
         print('Encrypted Username: $encryptedUsername');
@@ -354,7 +355,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         body: {
           'student_id': widget.studentId,
           'parent_id': widget.reg_id,
-          'acd_yr': widget.academicYr,
+          'acd_yr': academic_yr,
           'short_name': widget.shortName
         },
       );
@@ -381,7 +382,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         body: {
           'student_id': widget.studentId,
           'parent_id': widget.reg_id,
-          'acd_yr': widget.academicYr,
+          'acd_yr': academic_yr,
           'short_name': widget.shortName
         },
       );
@@ -408,7 +409,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         body: {
           'student_id': widget.studentId,
           'parent_id': widget.reg_id,
-          'acd_yr': widget.academicYr,
+          'acd_yr': academic_yr,
           'short_name': widget.shortName
         },
       );
@@ -437,7 +438,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         body: {
           'student_id': widget.studentId,
           'parent_id': widget.reg_id,
-          'acd_yr': widget.academicYr,
+          'acd_yr': academic_yr,
           'short_name': widget.shortName
         },
       );

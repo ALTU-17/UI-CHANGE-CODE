@@ -448,7 +448,7 @@ class _StudentFormState extends State<StudentForm> {
       Uri.parse("${url}get_student"),
       body: {
         'student_id': studentId,
-        'academic_yr': academic_yrstr,
+        'academic_yr': academic_yr,
         'short_name': shortName
       },
     );

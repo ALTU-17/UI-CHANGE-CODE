@@ -80,6 +80,7 @@ dependencies:
   marquee: ^2.2.3
   qr_flutter: ^4.1.0
   lottie: ^2.0.0
+  open_file: ^3.2.1
 #  package_info_plus: ^4.0.0  # Use the latest version available
 #  open_file: ^3.3.2
 

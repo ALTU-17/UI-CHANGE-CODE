@@ -192,21 +192,12 @@ class _LoginState extends State<LoginPage> {
         try {
           Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
 
-
-          setState(() {
-            shortName = parsedData['short_name'];
-            url = parsedData['url'];
-            durl = parsedData['project_url'];
-            teacherApkUrl = parsedData['teacherapk_url']; // Ensure this updates
-          });
-
-
           String schoolId = parsedData['school_id'];
           String name = parsedData['name'];
-           shortName = parsedData['short_name'];
+          shortName = parsedData['short_name'];
           schoolnamestr = parsedData['short_name'];
-           url = parsedData['url'];
-          // String teacherApkUrl = parsedData['teacherapk_url'];
+          url = parsedData['url'];
+          String teacherApkUrl = parsedData['teacherapk_url'];
           String projectUrl = parsedData['project_url'];
           String defaultPassword = parsedData['default_password'];
 
@@ -231,7 +222,7 @@ class _LoginState extends State<LoginPage> {
 
       http.Response response = await http.post(
         Uri.parse(url+"get_login"),
-        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId,'token': token},
+        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId},
       );
 
       print('Response status code: ${response.statusCode}');
@@ -248,8 +239,7 @@ class _LoginState extends State<LoginPage> {
           setState(() {
             shouldShowText = false;
           });
-          final academicYearProvider =
-          Provider.of<AcademicYearProvider>(context, listen: false);
+
           // Parse the API response into SchoolInfo object
           LogUrls logUrls = LogUrls.fromJson(jsonDecode(response.body));
 
@@ -259,8 +249,6 @@ class _LoginState extends State<LoginPage> {
 
           // Extract the academic_yr field
           String academicYr = logUrls11['academic_yr'];
-          academicYearProvider.setAcademicYear(logUrls11['academic_yr']);
-
           print('logDetJson===>  $academicYr');
 
           // Store JSON string in shared preferences
@@ -270,26 +258,21 @@ class _LoginState extends State<LoginPage> {
           print('logDetJson===>  $logDetJson');
 
           // Store login status in SharedPreferences
-           storeLoginStatus(true);
+          storeLoginStatus(true);
           // Navigate to QRScannerPage after successful login
           //**dashboard push */
           //  ElevatedButton(
           //             onPressed: () {
           //               Navigator.of(context).pushNamed(loginPage);
           //             },
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academicYr,shortName: shortName)),
-          // );
 
-          // After successful login, navigate to ParentDashBoardPage like this:
+
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => ParentDashBoardPage(academic_yr:academicYr,shortName: shortName),
             ),
                 (Route<dynamic> route) => false, // This removes all previous routes
           );
-
         }
       } else {
         setState(() {
@@ -308,6 +291,9 @@ class _LoginState extends State<LoginPage> {
     }
   }
 
+
+
+  // Store login status in SharedP
   // Store login status in SharedPreferences
   Future<void> storeLoginStatus(bool isLoggedIn) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

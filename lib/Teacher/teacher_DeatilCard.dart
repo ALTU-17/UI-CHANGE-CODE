@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
   import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../Utils&Config/DownloadHelper.dart';
+import '../main.dart';
 import 'Attachment.dart';
 
 class TeacherDetailCard extends StatelessWidget {
@@ -140,6 +142,7 @@ class TeacherDetailCard extends StatelessWidget {
       ],
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -311,6 +314,21 @@ class TeacherDetailCard extends StatelessWidget {
   }
 
   downloadFile(String url, BuildContext context, String name) async {
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
     var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/TeacherNote");
 
     if (!await directory.exists()) {
@@ -320,9 +338,25 @@ class TeacherDetailCard extends StatelessWidget {
     var path = "${directory.path}/$name";
     var file = File(path);
 
+    // await flutterLocalNotificationsPlugin.show(
+    //   0,
+    //   'Downloading Receipt',
+    //   'Downloading $name...',
+    //   platformChannelSpecifics,
+    // );
+
     try {
       var res = await http.get(Uri.parse(url));
       await file.writeAsBytes(res.bodyBytes);
+
+      // Update notification to show download complete
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Complete',
+        'File saved to Download/Evolvuschool/Parent/TeacherNote/$name',
+        platformChannelSpecifics,
+        payload: path, // Pass the file path as payload
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -330,26 +364,58 @@ class TeacherDetailCard extends StatelessWidget {
         ),
       );
     } catch (e) {
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to download file: $e'),
+          content: Text('Failed to download file'),
         ),
       );
     }
   }
 
   Future<void> _downloadFileIOS(String url,BuildContext context, String fileName) async {
-    // Get the documents directory on iOS
     final directory = await getApplicationDocumentsDirectory();
 
     // Construct the full path for the downloaded file
     final filePath = '${directory.path}/$fileName';
     final file = File(filePath);
 
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
+
     try {
       final response = await http.get(Uri.parse(url));
+
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
+
+        await flutterLocalNotificationsPlugin.show(
+          0,
+          'Download Complete',
+          'File saved to $filePath',
+          platformChannelSpecifics,
+          payload: filePath, // Pass the file path as payload
+        );
+
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('File Download Successfully. \n Find it in the Files/On My iPhone/EvolvU Smart School - Parent.'),
@@ -359,6 +425,13 @@ class TeacherDetailCard extends StatelessWidget {
 
       }
     } catch (e) {
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to download file: $e'),

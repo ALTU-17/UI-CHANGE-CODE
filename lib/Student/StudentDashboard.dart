@@ -12,9 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:evolvu/Student/student_card.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
+import '../AcademicYearProvider.dart';
 import '../Attendance/attendance.dart';
 import '../Attendance/circleAttendance.dart';
 import '../ExamTimeTable/examTimeTable.dart';
@@ -463,9 +465,12 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   @override
   Widget build(BuildContext context) {
     _context = context;
+    final academicYearProvider = Provider.of<AcademicYearProvider>(context);
 
     refreshDash();
     final List<CardItem> cardItems = [
+
+      if(academicYearProvider.academic_yr == widget.academicYr)
       CardItem(
         imagePath: widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png', // Local fallback image
         title: 'Student Profile',

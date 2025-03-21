@@ -1,10 +1,20 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'Parent_IDCard.dart';
 
 class EditStudentFormScreen extends StatefulWidget {
-
-
-  const EditStudentFormScreen({super.key,});
+  final Student student;
+  final Function(Student) onStudentUpdated;
+  const EditStudentFormScreen({super.key, required this.student, required this.onStudentUpdated});
 
   @override
   _EditStudentFormScreenState createState() => _EditStudentFormScreenState();
@@ -12,30 +22,222 @@ class EditStudentFormScreen extends StatefulWidget {
 
 class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _fullNameController;
-  late TextEditingController _classDivisionController;
-  late TextEditingController _dobController;
-  late TextEditingController _bloodGroupController;
+  // late TextEditingController _fullNameController;
+  // late TextEditingController _classDivisionController;
+  // late TextEditingController _dobController;
+  // late TextEditingController _bloodGroupController;
+  String? _selectedBloodGroup;
   late TextEditingController _addressController;
 
+  String imageUrl = "";  // Store the image URL here
+  File? file;
+  bool _isLoading = false; // To show a progress indicator
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController();
-    _classDivisionController = TextEditingController();
-    _dobController = TextEditingController();
-    _bloodGroupController = TextEditingController();
-    _addressController = TextEditingController();
+    // _fullNameController = TextEditingController(text: widget.student.fullName);
+    // _classDivisionController = TextEditingController(text: widget.student.classDivision);
+    // _dobController = TextEditingController(text: widget.student.dob);
+    // _bloodGroupController = TextEditingController(text: widget.student.bloodGroup);
+    _selectedBloodGroup = widget.student.bloodGroup;
+    _addressController = TextEditingController(text: widget.student.address);
+
+    // Initialize image URL with the student's existing image
+    imageUrl = widget.student.imageUrl;
   }
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _classDivisionController.dispose();
-    _dobController.dispose();
-    _bloodGroupController.dispose();
+    // _fullNameController.dispose();
+    // _classDivisionController.dispose();
+    // _dobController.dispose();
+    // _bloodGroupController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      if (_selectedBloodGroup == null || _selectedBloodGroup!.isEmpty) {
+        Fluttertoast.showToast(
+          msg: "Please select a blood group",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+        return;
+      }
+
+      setState(() {
+        _isLoading = true; // Show loading indicator
+      });
+
+      try {
+        print('durl: $durl/index.php/IdcardApi/student_idcard_details');
+
+        final response = await http.post(
+
+          Uri.parse(durl+'index.php/IdcardApi/student_idcard_details'),
+          body: {
+            'short_name': shortName,
+            'student_id': widget.student.studentId,
+            'blood_group': _selectedBloodGroup,
+            'address': _addressController.text,
+            'academic_yr': academic_yr,
+          },
+        );
+        print('durl: $shortName');
+        print('academic_yr: $academic_yr');
+        print('widget.student.studentId: ${widget.student.studentId}');
+
+        if (response.statusCode == 200) {
+          // Handle successful response
+          Fluttertoast.showToast(
+            msg: "Student ID Card Details Updated Successfully",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+
+          Student updatedStudent = Student(
+            studentId: widget.student.studentId,
+            fullName: widget.student.fullName,
+            classDivision: widget.student.classDivision,
+            dob: widget.student.dob,
+            bloodGroup: _selectedBloodGroup!,
+            address: _addressController.text,
+            gender: widget.student.gender,
+            imageUrl: imageUrl, // Updated image URL
+          );
+
+          // Navigate back to the previous screen
+          Navigator.pop(context,updatedStudent);
+          // Navigator.pop(context);
+        } else {
+          // Handle error response
+          Fluttertoast.showToast(
+            msg: "Failed to Update",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+        }
+      } catch (e) {
+        // Handle network or other errors
+        Fluttertoast.showToast(
+          msg: "An error occurred: $e",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      } finally {
+        setState(() {
+          _isLoading = false; // Hide loading indicator
+        });
+      }
+    }
+  }
+
+
+  Future<void> uploadImage(ImageSource source) async {
+    final image = await ImagePicker().pickImage(source: source);
+    if (image == null) return;
+
+    File imageFile = File(image.path);
+    var croppedFile = await cropImage(imageFile);
+
+    if (croppedFile != null) {
+      String base64Image = base64Encode(croppedFile.readAsBytesSync());
+
+      setState(() {
+        file = croppedFile;
+      });
+
+      String newImageUrl = await uploadImageToServer(croppedFile, base64Image);
+
+      setState(() {
+        imageUrl = newImageUrl; // Update UI instantly
+      });
+    }
+  }
+
+  Future<File?> cropImage(File pickedFile) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 100,
+      aspectRatioPresets: [
+        CropAspectRatioPreset.square,
+        CropAspectRatioPreset.ratio3x2,
+        CropAspectRatioPreset.original,
+        CropAspectRatioPreset.ratio4x3,
+        CropAspectRatioPreset.ratio16x9
+      ],
+      androidUiSettings: const AndroidUiSettings(
+        toolbarTitle: 'Crop Image',
+        toolbarColor: Colors.blue,
+        toolbarWidgetColor: Colors.white,
+        statusBarColor: Colors.blue,
+        backgroundColor: Colors.white,
+      ),
+      iosUiSettings: const IOSUiSettings(
+        minimumAspectRatio: 1.0,
+      ),
+    );
+
+    return croppedFile != null ? File(croppedFile.path) : File(pickedFile.path);
+  }
+
+  Future<String> uploadImageToServer(File croppedImage, String base64Image) async {
+    try {
+      var response = await http.post(
+        Uri.parse("${url}upload_student_profile_image_into_folder"),
+        body: {
+          'student_id': widget.student.studentId,
+          'short_name': shortName,
+          'filename': "${widget.student.studentId}.jpg",
+          'doc_type_folder': 'student_image',
+          'filedata': base64Image,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          imageUrl =
+          "${durl}uploads/student_image/${widget.student.studentId}.jpg?timestamp=${DateTime.now().millisecondsSinceEpoch}";
+        });
+
+        Fluttertoast.showToast(
+          msg: "Profile Picture updated successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        return imageUrl;
+      } else {
+        Fluttertoast.showToast(
+          msg: "Profile Picture Not updated successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+        throw Exception('Failed to upload image');
+      }
+    } catch (e) {
+      print("Error uploading image: $e");
+      throw Exception('Failed to upload image');
+    }
   }
 
   @override
@@ -47,10 +249,7 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
         toolbarHeight: 80.h,
         title: Text(
           "Edit Student Details",
-          style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.white),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -67,7 +266,7 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
         child: Padding(
           padding: const EdgeInsets.only(top: 100.0),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(10,10,10,100),
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Card(
               child: SingleChildScrollView(
                 child: Padding(
@@ -76,121 +275,66 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Student Image
+                        // Updated Student Image
                         CircleAvatar(
-                          radius: 80,
-                          // backgroundImage: NetworkImage(widget.student.imageUrl),
+                          radius: 75.w,
+                          backgroundColor: Colors.grey[200],
+                          backgroundImage: NetworkImage(imageUrl),
                           child: IconButton(
-                            icon: Icon(Icons.camera_alt, color: Colors.white),
+                            icon: const Icon(Icons.camera_alt, color: Colors.white),
                             onPressed: () {
-                              // Add logic to change image
+                              uploadImage(ImageSource.gallery);
                             },
                           ),
                         ),
-                        SizedBox(height: 20),
-                        // Full Name
-                        TextFormField(
-                          controller: _fullNameController,
-                          decoration: InputDecoration(
-                            labelText: 'Full Name',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter full name';
-                            }
-                            return null;
+                        const SizedBox(height: 20),
+                        _buildReadOnlyField("Full Name", widget.student.fullName, Icons.person),
+
+                        // Class-Division (Read-only)
+                        _buildReadOnlyField("Class-Division", widget.student.classDivision, Icons.school),
+
+                        // DOB (Read-only)
+                        _buildReadOnlyField("Date of Birth", widget.student.dob, Icons.calendar_today),
+
+                        // Blood Group (Editable Dropdown)
+                        LabeledDropdownID(
+                          label: "Blood Group",
+                          options: const [
+                            "AB+",
+                            "AB-",
+                            "B+",
+                            "B-",
+                            "A+",
+                            "A-",
+                            "O+",
+                            "O-"
+                          ],
+                          selectedValue: _selectedBloodGroup,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedBloodGroup = newValue; // Update selected blood group
+                            });
                           },
                         ),
-                        SizedBox(height: 16),
-                        // Class-Division
-                        TextFormField(
-                          controller: _classDivisionController,
-                          decoration: InputDecoration(
-                            labelText: 'Class-Division',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.school),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter class and division';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        // Date of Birth
-                        TextFormField(
-                          controller: _dobController,
-                          decoration: InputDecoration(
-                            labelText: 'Date of Birth',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.calendar_today),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter date of birth';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        // Blood Group
-                        TextFormField(
-                          controller: _bloodGroupController,
-                          decoration: InputDecoration(
-                            labelText: 'Blood Group',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.bloodtype),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter blood group';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        // Address
-                        TextFormField(
-                          controller: _addressController,
-                          decoration: InputDecoration(
-                            labelText: 'Address',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.home),
-                          ),
-                          maxLines: 3,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter address';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 20),
-                        // Submit Button
-                        ElevatedButton(
-                          onPressed: () {
-                            // if (_formKey.currentState!.validate()) {
-                            //   // Save the updated student details
-                            //   final updatedStudent = Student(
-                            //     fullName: _fullNameController.text,
-                            //     classDivision: _classDivisionController.text,
-                            //     dob: _dobController.text,
-                            //     bloodGroup: _bloodGroupController.text,
-                            //     address: _addressController.text,
-                            //     imageUrl: widget.student.imageUrl,
-                            //   );
-                            //   // Add logic to save the updated student details
-                            //   Navigator.pop(context, updatedStudent);
-                            // }
-                          },
+
+                        // Address (Editable)
+                        _buildTextField("Address", _addressController, Icons.home, maxLines: 2),
+
+                        const SizedBox(height: 20),
+
+                        // Save Changes Button
+                        _isLoading
+                            ? CircularProgressIndicator() // Show loading indicator
+                            : ElevatedButton(
+                          onPressed: _submitForm,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                           ),
-                          child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            "Save Changes",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -203,22 +347,92 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
       ),
     );
   }
+
+  Widget _buildReadOnlyField(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        readOnly: true,
+        initialValue: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(icon),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {int maxLines = 1}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(icon),
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter $label';
+          }
+          return null;
+        },
+      ),
+    );
+  }
 }
 
-class Student {
-  final String fullName;
-  final String classDivision;
-  final String dob;
-  final String bloodGroup;
-  final String address;
-  final String imageUrl;
+class LabeledDropdownID extends StatelessWidget {
+  final String label;
+  final List<String> options;
+  final String? selectedValue;
+  final Function(String?) onChanged;
 
-  Student({
-    required this.fullName,
-    required this.classDivision,
-    required this.dob,
-    required this.bloodGroup,
-    required this.address,
-    required this.imageUrl,
+  const LabeledDropdownID({
+    required this.label,
+    required this.options,
+    required this.selectedValue,
+    required this.onChanged,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 16, color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: selectedValue,
+            items: options.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select $label';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
+

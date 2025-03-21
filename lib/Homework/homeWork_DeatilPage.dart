@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Teacher/Attachment.dart';
+import '../main.dart';
 
 class HomeworkInfo {
   final String className;
@@ -482,6 +484,22 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
   }
 
    downloadFile(String url, BuildContext context, String name) async {
+
+
+     const AndroidNotificationDetails androidPlatformChannelSpecifics =
+     AndroidNotificationDetails(
+       'download_channel',
+       'Download Channel',
+       channelDescription: 'Notifications for file downloads',
+       importance: Importance.high,
+       priority: Priority.high,
+       showProgress: true,
+       onlyAlertOnce: true,
+     );
+
+     const NotificationDetails platformChannelSpecifics =
+     NotificationDetails(android: androidPlatformChannelSpecifics);
+
     var directory =
         Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Homework");
 
@@ -497,6 +515,14 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
       var res = await http.get(Uri.parse(url));
       await file.writeAsBytes(res.bodyBytes);
 
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Complete',
+        'File saved to Download/Evolvuschool/Parent/Homework/$name',
+        platformChannelSpecifics,
+        payload: path, // Pass the file path as payload
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -504,6 +530,14 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
         ),
       );
     } catch (e) {
+
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to download file: $e'),
@@ -513,6 +547,22 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
   }
 
   Future<void> _downloadFileIOS(String url,BuildContext context, String fileName) async {
+
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
     // Get the documents directory on iOS
     final directory = await getApplicationDocumentsDirectory();
 
@@ -524,6 +574,15 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
+
+        await flutterLocalNotificationsPlugin.show(
+          0,
+          'Download Complete',
+          'File saved to $filePath',
+          platformChannelSpecifics,
+          payload: filePath, // Pass the file path as payload
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Find it in the Files/On My iPhone/EvolvU Smart School - Parent.'),
@@ -533,6 +592,13 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
 
       }
     } catch (e) {
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to download file: $e'),

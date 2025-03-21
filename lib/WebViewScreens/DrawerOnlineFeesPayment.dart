@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../AcademicYearProvider.dart';
 import 'FeesReceiptWebViewScreen.dart';
 
 class DrawerOnlineFeesPayment extends StatefulWidget {
@@ -66,13 +69,15 @@ class _PaymentWebviewState extends State<DrawerOnlineFeesPayment> {
 
 
     Widget build(BuildContext context) {
+      final academicYearProvider = Provider.of<AcademicYearProvider>(context);
+      bool isAcademicYearMatch = academicYearProvider.academic_yr == widget.academicYr;
       return Scaffold( // Use Scaffold here
         backgroundColor: Colors.transparent,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           toolbarHeight: 80.h,
           title: Text(
-            'Fees Payment',
+            'Fees Payment $academic_yr',
             style: TextStyle(fontSize: 20.sp, color: Colors.white),
           ),
           backgroundColor: Colors.transparent,
@@ -89,30 +94,36 @@ class _PaymentWebviewState extends State<DrawerOnlineFeesPayment> {
           child: Column(
             children: [
               SizedBox(height: 100.h),
-              Expanded(
-                child: WebViewWidget(controller: _controller),
+              if(academicYearProvider.academic_yr == academic_yr)
+                Expanded(
+                  child: WebViewWidget(controller: _controller),
+                ) else Expanded(
+                child: ReceiptWebViewScreenVali(
+                  receiptUrl: widget.receiptUrl +
+                      '?reg_id=${widget.regId}&academic_yr=${widget.academicYr}&short_name=${widget.shortName}',
+                ),
               ),
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
+        floatingActionButton: isAcademicYearMatch
+            ? FloatingActionButton.extended(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    ReceiptWebViewScreen(
-                      receiptUrl: widget.receiptUrl +
-                          '?reg_id=${widget.regId}&academic_yr=${widget
-                              .academicYr}&short_name=${widget.shortName}',
-                    ),
+                builder: (_) => ReceiptWebViewScreen(
+                  receiptUrl: widget.receiptUrl +
+                      '?reg_id=${widget.regId}&academic_yr=${widget.academicYr}&short_name=${widget.shortName}',
+                ),
               ),
             );
           },
-          icon: const Icon(Icons.receipt,color: Colors.black,),
+          icon: const Icon(Icons.receipt, color: Colors.black),
           label: const Text("Receipt"),
           backgroundColor: Colors.blue.shade400,
-        ),
+        )
+            : null, // Hide the button when the condition is false
       );
     }
   }

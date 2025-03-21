@@ -24,6 +24,7 @@ import '../aboutUs.dart';
 import '../changePasswordPage.dart';
 import '../main.dart';
 import 'DrawerParentProfile.dart';
+import 'Parent_IDCard.dart';
 
 class ParentDashBoardPage extends StatefulWidget {
   final String academic_yr;
@@ -57,7 +58,7 @@ Future<void> _getSchoolInfo(BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   String? schoolInfoJson = prefs.getString('school_info');
   String? logUrls = prefs.getString('logUrls');
-  print('logUrls====\\\\\: $schoolInfoJson');
+  print('logUrls1111 $schoolInfoJson');
   if (logUrls != null) {
     try {
       Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
@@ -67,13 +68,15 @@ Future<void> _getSchoolInfo(BuildContext context) async {
       // academic_yr = logUrlsparsed['academic_yr'];
       reg_id = logUrlsparsed['reg_id'];
 
-
       academicYearProvider.setAcademicYear(logUrlsparsed['academic_yr']);
 
       print('academic_yr ID: ${academicYearProvider.academic_yr}');
       academic_yr = academicYearProvider.academic_yr;
+      if(academic_yr.isEmpty){
+        academic_yr = logUrlsparsed['academic_yr'];
+      }
       print('academic_yr ID: $academic_yr');
-      print('reg_id: $reg_id');
+      print('reg_id $reg_id');
     } catch (e) {
       print('Error parsing school info: $e');
     }
@@ -663,6 +666,18 @@ class CustomPopup extends StatelessWidget {
       ),
 
 
+
+      CardItem(
+        imagePath: 'assets/idcard.png',
+        title: 'ID Card',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => StudentFormScreen(
+            )),
+          );
+        },
+      ),
 
       CardItem(
         imagePath: 'assets/almanac.png',

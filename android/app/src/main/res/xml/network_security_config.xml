@@ -3,4 +3,9 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">sms.arnoldcentralschool.org</domain>
     </domain-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">holyspiritconvent.evolvu.in</domain>
+    </domain-config>
 </network-security-config>
+
+

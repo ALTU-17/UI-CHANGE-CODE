@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="altu.ace.dimp.flutter.parentapp"
     android:versionCode="2"
     android:versionName="1.0.1">
@@ -23,11 +24,14 @@
         </intent>
     </queries>
     <application
+        android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher"
         android:label="Flutter EvolvU"
         android:name="${applicationName}"
+        android:supportsRtl="true"
+        tools:ignore="AllowBackup,GoogleAppIndexingWarning"
         android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"

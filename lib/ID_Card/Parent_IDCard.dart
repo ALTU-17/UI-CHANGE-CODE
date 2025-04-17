@@ -11,7 +11,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'DrawerParentProfile.dart';
+import '../Parent/DrawerParentProfile.dart';
 import 'Edit_IDCard.dart';
 
 class StudentFormScreen extends StatefulWidget {
@@ -31,7 +31,6 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
   String shortName = "";
   String url = "";
   ParentDet? ParentDetmod;
-
 
 
   late TextEditingController fatherMobileController;
@@ -91,7 +90,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         backgroundColor: Colors.white,
       ),
       iosUiSettings: const IOSUiSettings(
-        minimumAspectRatio: 1.0,
+        cancelButtonTitle: 'Cancel',
+        doneButtonTitle: 'Done',
       ),
     );
 
@@ -103,7 +103,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       setState(() {
         if (type == "father") {
           _fatherImage = file;
-          _fatherImageBase64 = base64Image;
+          _fatherImageBase64 = base64Image; 
           _fatherFileName = "f_$regId.jpg";
         } else if (type == "mother") {
           _motherImage = file;
@@ -198,7 +198,6 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
           fatherMobileController.text = parents[0].mobile;
           motherMobileController.text = parents[1].mobile;
-
         }
       } else {
         print('Failed to load parent details with status code: ${response
@@ -304,11 +303,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
           'guardian_name': guardianNameController.text,
           'relation': guardianRelationController.text,
 
-          if (_fatherImageBase64.isNotEmpty) 'f_datafile_str': _fatherImageBase64,
+          if (_fatherImageBase64
+              .isNotEmpty) 'f_datafile_str': _fatherImageBase64,
           if (_fatherImageBase64.isNotEmpty) 'f_file_name': _fatherFileName,
-          if (_motherImageBase64.isNotEmpty) 'm_datafile_str': _motherImageBase64,
+          if (_motherImageBase64
+              .isNotEmpty) 'm_datafile_str': _motherImageBase64,
           if (_motherImageBase64.isNotEmpty) 'm_file_name': _motherFileName,
-          if (_guardianImageBase64.isNotEmpty) 'g_datafile_str': _guardianImageBase64,
+          if (_guardianImageBase64
+              .isNotEmpty) 'g_datafile_str': _guardianImageBase64,
           if (_guardianImageBase64.isNotEmpty) 'g_file_name': _guardianFileName,
         },
       );
@@ -342,7 +344,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     }
   }
 
-  Future<void> _updateParentMobile(String parentId, String newMobile, String relation) async {
+  Future<void> _updateParentMobile(String parentId, String newMobile,
+      String relation) async {
     if (newMobile.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -367,11 +370,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
           'guardian_name': guardianNameController.text,
           'relation': guardianRelationController.text,
 
-          if (_fatherImageBase64.isNotEmpty) 'f_datafile_str': _fatherImageBase64,
+          if (_fatherImageBase64
+              .isNotEmpty) 'f_datafile_str': _fatherImageBase64,
           if (_fatherImageBase64.isNotEmpty) 'f_file_name': _fatherFileName,
-          if (_motherImageBase64.isNotEmpty) 'm_datafile_str': _motherImageBase64,
+          if (_motherImageBase64
+              .isNotEmpty) 'm_datafile_str': _motherImageBase64,
           if (_motherImageBase64.isNotEmpty) 'm_file_name': _motherFileName,
-          if (_guardianImageBase64.isNotEmpty) 'g_datafile_str': _guardianImageBase64,
+          if (_guardianImageBase64
+              .isNotEmpty) 'g_datafile_str': _guardianImageBase64,
           if (_guardianImageBase64.isNotEmpty) 'g_file_name': _guardianFileName,
         },
       );
@@ -391,7 +397,6 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
             parents[1].mobile = newMobile;
           }
           Navigator.pop(context);
-
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -413,7 +418,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
   void _updateStudent(Student updatedStudent) {
     setState(() {
-      final index = students.indexWhere((s) => s.studentId == updatedStudent.studentId);
+      final index = students.indexWhere((s) =>
+      s.studentId == updatedStudent.studentId);
       if (index != -1) {
         students[index] = updatedStudent; // Update the student in the list
       }
@@ -429,7 +435,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
         toolbarHeight: 80.h,
         title: Text(
           "ID Card Details",
-          style: TextStyle(fontWeight: FontWeight.bold,fontSize: 18.sp, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+              color: Colors.white),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -456,8 +464,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
             child: Column(
               children: [
                 // Student Cards
-                ...students.map((student) => StudentCardID(
-                    student: student, onStudentUpdated: _updateStudent))
+                ...students.map((student) =>
+                    StudentCardID(
+                        student: student, onStudentUpdated: _updateStudent))
                     .toList(),
 
                 Column(
@@ -468,7 +477,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     ],
 
 
-                    if (guardian != null) _buildGuardianSection(guardian!), // Guardian
+                    if (guardian != null) _buildGuardianSection(guardian!),
+                    // Guardian
                   ],
                 ),
 
@@ -487,6 +497,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       ),
     );
   }
+
   Widget _buildParentSection(ParentInfo parent) {
     return Card(
       elevation: 4,
@@ -506,19 +517,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                 height: 70,
                 fit: BoxFit.cover,
               )
-                  : CachedNetworkImage(
-                imageUrl: parent.imageUrl,
-                width: 70,
-                height: 70,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Container(
-                  width: 70,
-                  height: 70,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 50, color: Colors.grey),
-                ),
-              )
+                  : _buildNetworkImage(parent.imageUrl)
                   : _motherImage != null
                   ? Image.file(
                 _motherImage!,
@@ -526,34 +525,25 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                 height: 70,
                 fit: BoxFit.cover,
               )
-                  : CachedNetworkImage(
-                imageUrl: parent.imageUrl,
-                width: 70,
-                height: 70,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Container(
-                  width: 70,
-                  height: 70,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 50, color: Colors.grey),
-                ),
-              ),
+                  : _buildNetworkImage(parent.imageUrl),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(parent.relation, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(parent.relation, style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 4),
                   Text(parent.name, style: const TextStyle(fontSize: 15)),
                   TextFormField(
-                    controller: parent.relation == "Father" ? fatherMobileController : motherMobileController,
-                    decoration: InputDecoration(
-                      labelText: "Mobile:",
-                    ),
-                      style: const TextStyle( fontSize: 15)
+                      controller: parent.relation == "Father"
+                          ? fatherMobileController
+                          : motherMobileController,
+                      decoration: InputDecoration(
+                        labelText: "Mobile:",
+                      ),
+                      style: const TextStyle(fontSize: 15)
                   ),
                 ],
               ),
@@ -562,12 +552,29 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
               icon: const Icon(Icons.edit, color: Colors.blue),
               onPressed: () {
                 _pickImage(parent.relation.toLowerCase());
-
               },
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNetworkImage(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      width: 70,
+      height: 70,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => const CircularProgressIndicator(),
+      errorWidget: (context, url, error) => Container(
+        width: 70,
+        height: 70,
+        color: Colors.grey[300],
+        child: const Icon(Icons.person, size: 50, color: Colors.grey),
+      ),
+      // Add cache key to force refresh
+      cacheKey: '${url}_${DateTime.now().millisecondsSinceEpoch}',
     );
   }
 
@@ -589,19 +596,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                 height: 70,
                 fit: BoxFit.cover,
               )
-                  : CachedNetworkImage(
-                imageUrl: guardian.GURimageUrl,
-                width: 70,
-                height: 70,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Container(
-                  width: 70,
-                  height: 70,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 50, color: Colors.grey),
-                ),
-              ),
+                  : _buildNetworkImage(guardian.GURimageUrl)
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -612,24 +607,25 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                   // const SizedBox(height: 4),
                   // Text(guardian.GURname, style: const TextStyle(fontSize: 15)),
                   TextFormField(
-                    controller: guardianNameController,
-                    decoration: InputDecoration(
-                      labelText: "Guardian Name:",
-                    ),
-                   style: const TextStyle( fontSize: 15)
-                  ),TextFormField(
-                    controller: guardianRelationController,
-                    decoration: InputDecoration(
-                      labelText: "Guardian Relation:",
-                    ),
-                      style: const TextStyle( fontSize: 15)
+                      controller: guardianNameController,
+                      decoration: InputDecoration(
+                        labelText: "Guardian Name:",
+                      ),
+                      style: const TextStyle(fontSize: 15)
                   ),
                   TextFormField(
-                    controller: guardianMobileController,
-                    decoration: InputDecoration(
-                      labelText: "Guardian Mobile:",
-                    ),
-                      style: const TextStyle( fontSize: 15)
+                      controller: guardianRelationController,
+                      decoration: InputDecoration(
+                        labelText: "Guardian Relation:",
+                      ),
+                      style: const TextStyle(fontSize: 15)
+                  ),
+                  TextFormField(
+                      controller: guardianMobileController,
+                      decoration: InputDecoration(
+                        labelText: "Guardian Mobile:",
+                      ),
+                      style: const TextStyle(fontSize: 15)
                   ),
                 ],
               ),
@@ -638,7 +634,7 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
               icon: const Icon(Icons.edit, color: Colors.blue),
               onPressed: () {
                 _pickImage("guardian");
-                },
+              },
             ),
           ],
         ),
@@ -663,7 +659,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
               },
             ),
             const Expanded(
-              child: Text("I hereby declare that the information provided is true and correct."),
+              child: Text(
+                  "I hereby declare that the information provided is true and correct."),
             ),
           ],
         ),
@@ -673,159 +670,336 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
 
   Widget _buildSubmitButton() {
-      return ElevatedButton(
-        onPressed: () async {
-          // Validate if the checkbox is checked
-          if (!isChecked) {
+    return ElevatedButton(
+      onPressed: () async {
+
+
+        List<String> studentsNeedingImages = [];
+        for (var student in students) {
+          // Print detailed logs for each student's image
+          print('Student: ${student.fullName}');
+          print('Image URL: ${student.imageUrl}');
+
+          bool needsImage = false;
+
+          // Check for placeholder images
+          if (student.imageUrl.contains("via.placeholder.com") ||
+              student.imageUrl.contains("assets/girl.png") ||
+              student.imageUrl.contains("assets/boy.png") ||
+              student.imageUrl.endsWith("/")) {
+            needsImage = true;
+            print('Invalid image: Placeholder or fallback detected');
+          }
+          // Check for possible 404 URLs
+          else if (student.imageUrl.startsWith("http")) {
+            try {
+              final response = await http.head(Uri.parse(student.imageUrl));
+              if (response.statusCode == 404) {
+                needsImage = true;
+                print('Invalid image: 404 Not Found');
+              }
+            } catch (e) {
+              needsImage = true;
+              print('Invalid image: Error checking URL ($e)');
+            }
+          }
+
+          print('Needs image: $needsImage');
+          print('----------------------------------');
+
+          if (needsImage) {
+            // Split name and take first two parts
+            List<String> nameParts = student.fullName.split(' ');
+            String displayName = nameParts.length > 2
+                ? '${nameParts[0]} ${nameParts[1]}'
+                : student.fullName;
+            studentsNeedingImages.add(displayName);
+          }
+        }
+
+        print('Total students needing images: ${studentsNeedingImages.length}');
+        print('Students needing images: ${studentsNeedingImages.join(', ')}');
+
+        if (studentsNeedingImages.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Please upload profile picture for ${studentsNeedingImages.join(', ')}",
+              ),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+              // if (_fatherImage == null && _motherImage == null) {
+              //   ScaffoldMessenger.of(context).showSnackBar(
+              //     SnackBar(
+              //       content: Text("Please upload any one parent's profile picture."),
+              //       backgroundColor: Colors.red,
+              //     ),
+              //   );
+              //   return;
+              // }
+
+              print('_fatherImageBase64 ID: $_fatherImageBase64');
+          print('_fatherImage ID: $_fatherImage');
+          print('_fatherFileName ID: ${parents[0].imageUrl}');
+          print('mother imgurl ID: ${parents[1].imageUrl}');
+          print('mother imgurl ID: ${motherMobileController.text}');
+
+          // Helper function to check if image URL is valid
+          bool isValidImageUrl(String url) {
+            return url.isNotEmpty &&
+                !url.endsWith('/') &&
+                !url.contains("via.placeholder.com");
+          }
+
+          if (fatherMobileController.text.isNotEmpty &&
+              fatherMobileController.text.length != 10) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Please confirm the declaration by checking the checkbox."),
+                content: Text(
+                    "Please enter a valid 10-digit mobile number for the father."),
                 backgroundColor: Colors.red,
               ),
             );
             return;
           }
 
-          bool hasStudentImage = students.every((student) =>
-          student.imageUrl.contains("via.placeholder.com"));
-
-          if (!hasStudentImage) {
+          if (motherMobileController.text.isNotEmpty &&
+              motherMobileController.text.length != 10) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Please upload profile picture for student."),
+                content: Text(
+                    "Please enter a valid 10-digit mobile number for the mother."),
                 backgroundColor: Colors.red,
               ),
             );
             return;
           }
 
+          // Validate that at least one of the parents has both a profile picture and a mobile number
+          bool isFatherDataComplete = fatherMobileController.text.isNotEmpty &&
+              isValidImageUrl(parents[0].imageUrl) ||
+              _fatherImageBase64.isNotEmpty;
+          bool isMotherDataComplete = motherMobileController.text.isNotEmpty &&
+              isValidImageUrl(parents[1].imageUrl) ||
+              _motherImageBase64.isNotEmpty;
+
+          if (!isFatherDataComplete && !isMotherDataComplete) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    "Please provide at least one parent's mobile number and profile picture."),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          print('_fatherImageBase64 ID: $_fatherImageBase64');
+          print('_fatherImage ID: $_fatherImage');
+          print('_fatherFileName ID: ${parents[0].imageUrl}');
+          print('mother imgurl ID: ${parents[1].imageUrl}');
+          // print('_guardianImage: ${guardian.GURimageUrl}');
+          print('_guardianImage: $_guardianImage');
+          print('mother imgurl ID: ${motherMobileController.text}');
+
+          // Validate that if either parent has a profile picture or a mobile number, both are provided
+          // if (fatherMobileController.text.isNotEmpty && !isValidImageUrl(parents[0].imageUrl) || _fatherImageBase64.isNotEmpty) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     SnackBar(
+          //       content: Text("Please upload father's profile picture."),
+          //       backgroundColor: Colors.red,
+          //     ),
+          //   );
+          //   return;
+          // }
+
+          if (isValidImageUrl(parents[0].imageUrl) &&
+              fatherMobileController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Please enter father's mobile number."),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          // if (motherMobileController.text.isNotEmpty && !isValidImageUrl(parents[1].imageUrl) && _motherImageBase64.isNotEmpty) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     SnackBar(
+          //       content: Text("Please upload mother's profile picture."),
+          //       backgroundColor: Colors.red,
+          //     ),
+          //   );
+          //   return;
+          // }
+
+          if (isValidImageUrl(parents[1].imageUrl) &&
+              motherMobileController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Please enter mother's mobile number."),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          // At least one parent must have both image and mobile
+          // if (!(fatherHasMobile && fatherHasImage) && !(motherHasMobile && motherHasImage)) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     SnackBar(
+          //       content: Text("At least one parent must have both image and mobile number"),
+          //       backgroundColor: Colors.red,
+          //     ),
+          //   );
+          //   return;
+          // }
 
           // Check if at least one parent's image is uploaded (either from backend or locally)
-          bool isFatherImageUploaded = parents[0].imageUrl != "https://via.placeholder.com/100" || _fatherImage != null;
-          bool isMotherImageUploaded = parents[1].imageUrl != "https://via.placeholder.com/100" || _motherImage != null;
+          // bool isFatherImageUploaded = parents[0].imageUrl != "https://via.placeholder.com/100" || _fatherImage != null;
+          // bool isMotherImageUploaded = parents[1].imageUrl != "https://via.placeholder.com/100" || _motherImage != null;
+          //
+          // if (parents[0].imageUrl == "https://holyspiritconvent.evolvu.in/test/hscs_test/uploads/parent_image/"
+          //     && parents[1].imageUrl == "https://holyspiritconvent.evolvu.in/test/hscs_test/uploads/parent_image/") {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     SnackBar(
+          //       content: Text("Please upload any one parent's profile picture."),
+          //       backgroundColor: Colors.red,
+          //     ),
+          //   );
+          //   return;
+          // }
+          //
+          // // Validate father's data if image is uploaded (either from backend or locally)
+          // if (isFatherImageUploaded) {
+          //   if (fatherMobileController.text.isEmpty) {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       SnackBar(
+          //         content: Text("Please enter father's mobile number."),
+          //         backgroundColor: Colors.red,
+          //       ),
+          //     );
+          //     return;
+          //   }
+          //
+          //   if (fatherMobileController.text.length != 10) {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       SnackBar(
+          //         content: Text("Please enter a valid 10-digit mobile number for the father."),
+          //         backgroundColor: Colors.red,
+          //       ),
+          //     );
+          //     return;
+          //   }
+          // }
+          //
+          // // Validate mother's data if image is uploaded (either from backend or locally)
+          // if (parents[1].imageUrl != "https://holyspiritconvent.evolvu.in/test/hscs_test/uploads/parent_image/") {
+          //   if (motherMobileController.text.isEmpty) {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       SnackBar(
+          //         content: Text("Please enter mother's mobile number."),
+          //         backgroundColor: Colors.red,
+          //       ),
+          //     );
+          //     return;
+          //   }
+          //
+          //   if (motherMobileController.text.length != 10) {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       SnackBar(
+          //         content: Text("Please enter a valid 10-digit mobile number for the mother."),
+          //         backgroundColor: Colors.red,
+          //       ),
+          //     );
+          //     return;
+          //   }
+          // }
 
-          if (!isFatherImageUploaded && !isMotherImageUploaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Please upload any one parent's profile picture."),
-                backgroundColor: Colors.red,
-              ),
-            );
-            return;
-          }
+          // Validate guardian's data and image (optional but must be complete if any field is filled)
 
-          // Validate father's data if image is uploaded (either from backend or locally)
-          if (isFatherImageUploaded) {
-            if (fatherMobileController.text.isEmpty) {
+          bool isGuardianDataPartiallyFilled = guardianMobileController.text
+              .isNotEmpty ||
+              guardianNameController.text.isNotEmpty ||
+              guardianRelationController.text.isNotEmpty ||
+              _guardianImageBase64.isNotEmpty ||
+              _guardianImage != null;
+
+          if (isGuardianDataPartiallyFilled) {
+            // If any guardian field is filled, ensure all required fields are filled
+            if (guardianNameController.text.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Please enter father's mobile number."),
+                  content: Text("Please enter guardian's name."),
                   backgroundColor: Colors.red,
                 ),
               );
               return;
             }
-
-            if (fatherMobileController.text.length != 10) {
+            if (guardianMobileController.text.length != 10) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Please enter a valid 10-digit mobile number for the father."),
+                  content: Text(
+                      "Please enter a valid 10-digit guardian mobile number."),
                   backgroundColor: Colors.red,
                 ),
               );
               return;
             }
-          }
-
-          // Validate mother's data if image is uploaded (either from backend or locally)
-          if (isMotherImageUploaded) {
-            if (motherMobileController.text.isEmpty) {
+            if (guardianRelationController.text.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Please enter mother's mobile number."),
+                  content: Text("Please enter guardian's relation."),
                   backgroundColor: Colors.red,
                 ),
               );
               return;
             }
-
-            if (motherMobileController.text.length != 10) {
+            if (_guardianImage == null && guardian!.GURimageUrl.endsWith('/')) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Please enter a valid 10-digit mobile number for the mother."),
+                  content: Text("Please upload guardian's profile picture."),
                   backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-          }
-
-          // Improved guardian validation
-          bool isAnyGuardianFieldFilled =
-              guardianMobileController.text.isNotEmpty ||
-                  guardianNameController.text.isNotEmpty ||
-                  guardianRelationController.text.isNotEmpty ||
-                  _guardianImageBase64.isNotEmpty ||
-                  _guardianImage != null;
-
-          if (isAnyGuardianFieldFilled) {
-            // If any guardian field has data, validate all required fields
-            bool isGuardianComplete =
-                guardianNameController.text.isNotEmpty &&
-                    guardianMobileController.text.isNotEmpty &&
-                    guardianMobileController.text.length == 10 &&
-                    guardianRelationController.text.isNotEmpty &&
-                    (_guardianImage != null ||
-                        _guardianImageBase64.isNotEmpty ||
-                        (guardian != null && guardian!.GURimageUrl != "https://via.placeholder.com/100"));
-
-            if (!isGuardianComplete) {
-              // Show comprehensive error message about all required fields
-              String errorMessage = "Please complete all guardian details:\n";
-              List<String> missingFields = [];
-
-              if (guardianNameController.text.isEmpty) {
-                missingFields.add("Name");
-              }
-              if (guardianMobileController.text.isEmpty) {
-                missingFields.add("Mobile Number");
-              } else if (guardianMobileController.text.length != 10) {
-                missingFields.add("Valid 10-digit Mobile Number");
-              }
-              if (guardianRelationController.text.isEmpty) {
-                missingFields.add("Relation");
-              }
-              if (_guardianImage == null &&
-                  _guardianImageBase64.isEmpty &&
-                  (guardian == null || guardian!.GURimageUrl == "https://via.placeholder.com/100")) {
-                missingFields.add("Profile Picture");
-              }
-
-              errorMessage += missingFields.join(", ");
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(errorMessage),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
                 ),
               );
               return;
             }
           }
+
+        // Validate if the checkbox is checked
+        if (!isChecked) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  "Please confirm the declaration by checking the checkbox."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
           // If all validations pass, update the data
-          await _updateParentMobile(parents[0].id, fatherMobileController.text, "Father");
-          await _updateParentMobile(parents[1].id, motherMobileController.text, "Mother");
+          await _updateParentMobile(
+              parents[0].id, fatherMobileController.text, "Father");
+          await _updateParentMobile(
+              parents[1].id, motherMobileController.text, "Mother");
           await _updateGuardianMobile(guardianMobileController.text);
         },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade600,
-          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-        ),
-        child: const Text("Submit", style: TextStyle(color: Colors.white, fontSize: 16)),
-      );
-    }
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue.shade600,
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+      ),
+      child: const Text(
+          "Submit", style: TextStyle(color: Colors.white, fontSize: 16)),
+    );
   }
+}
 
 
 class ParentInfo {
@@ -834,7 +1008,6 @@ class ParentInfo {
   String mobile;
   final String relation;
   final String imageUrl;
-
 
 
   ParentInfo({
@@ -847,19 +1020,25 @@ class ParentInfo {
   });
 
 
-  factory ParentInfo.fromJson(Map<String, dynamic> json, String relation, String url) {
+  factory ParentInfo.fromJson(Map<String, dynamic> json, String relation,
+      String url) {
     return ParentInfo(
       id: json['parent_id'] ?? "",
-      name: json[relation == "Father" ? 'father_name' : 'mother_name'] ?? "Not Available",
+      name: json[relation == "Father" ? 'father_name' : 'mother_name'] ??
+          "Not Available",
       mobile: json[relation == "Father" ? 'f_mobile' : 'm_mobile'] ?? "N/A",
       relation: relation,
-      imageUrl: json[relation == "Father" ? 'father_image_name' : 'mother_image_name'] != null
-          ? durl + "uploads/parent_image/" + json[relation == "Father" ? 'father_image_name' : 'mother_image_name']
+      imageUrl: json[relation == "Father"
+          ? 'father_image_name'
+          : 'mother_image_name'] != null
+          ? durl + "uploads/parent_image/" +
+          json[relation == "Father" ? 'father_image_name' : 'mother_image_name']
           : "https://via.placeholder.com/100",
 
     );
   }
 }
+
 class GURInfo {
   final String id;
 
@@ -878,7 +1057,8 @@ class GURInfo {
   });
 
 
-  factory GURInfo.fromJson(Map<String, dynamic> json, String relation, String url) {
+  factory GURInfo.fromJson(Map<String, dynamic> json, String relation,
+      String url) {
     return GURInfo(
       id: json['parent_id'] ?? "",
       GURname: json['guardian_name'] ?? "Not Available",
@@ -916,14 +1096,17 @@ class Student {
   factory Student.fromJson(Map<String, dynamic> json) {
     return Student(
       studentId: json['student_id'].toString(),
-      fullName: json['student_name']+" "+json['mid_name']+" "+json['last_name'],
+      fullName: json['student_name'] + " " + json['mid_name'] + " " +
+          json['last_name'],
       classDivision: "${json['class_name']} ${json['section_name']}",
       dob: json['dob'],
       bloodGroup: json['blood_group'] ?? "Unknown",
       address: json['permant_add'] ?? "Not Available",
       gender: json['gender'] ?? "",
-      imageUrl: json['image_name'] != null ?
-      durl + "uploads/student_image/"+ json['image_name'] : "https://via.placeholder.com/100",
+      imageUrl: json['image_name'] != null
+          ?
+      durl + "uploads/student_image/" + json['image_name']
+          : "https://via.placeholder.com/100",
     );
   }
 }
@@ -933,7 +1116,8 @@ class StudentCardID extends StatelessWidget {
   final Student student;
   final Function(Student) onStudentUpdated;
 
-  const StudentCardID({super.key, required this.student, required this.onStudentUpdated});
+  const StudentCardID(
+      {super.key, required this.student, required this.onStudentUpdated});
 
   @override
   Widget build(BuildContext context) {
@@ -950,12 +1134,18 @@ class StudentCardID extends StatelessWidget {
             SizedBox.square(
               dimension: 70.w,
               child: CachedNetworkImage(
-                imageUrl: student.imageUrl + '?timestamp=${DateTime.now().millisecondsSinceEpoch}',
-                placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) => Image.asset(
-                  student.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
+                imageUrl: student.imageUrl + '?timestamp=${DateTime
+                    .now()
+                    .millisecondsSinceEpoch}',
+                placeholder: (context, url) =>
+                    Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) =>
+                    Image.asset(
+                      student.gender == 'M'
+                          ? 'assets/boy.png'
+                          : 'assets/girl.png',
+                    ),
               ),
-            ),
             ),
             const SizedBox(width: 12),
 
@@ -974,22 +1164,24 @@ class StudentCardID extends StatelessWidget {
             ),
 
             // Edit Button
-        IconButton(
-          icon: const Icon(Icons.edit, color: Colors.blue),
-          onPressed: () async {
-            final updatedStudent = await Navigator.push<Student>(
-              context,
-              MaterialPageRoute(
-                builder: (context) => EditStudentFormScreen(student: student,onStudentUpdated :onStudentUpdated),
-              ),
-            );
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () async {
+                final updatedStudent = await Navigator.push<Student>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditStudentFormScreen(
+                        student: student,
+                        onStudentUpdated: onStudentUpdated),
+                  ),
+                );
 
-            if (updatedStudent != null) {
-              // Update the student in the list
-              onStudentUpdated(updatedStudent);
-            }
-          },
-        ),
+                if (updatedStudent != null) {
+                  // Update the student in the list
+                  onStudentUpdated(updatedStudent);
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -1004,9 +1196,11 @@ class StudentCardID extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         text: TextSpan(
           text: "$label: ",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, color: Colors.black),
           children: [
-            TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.normal)),
+            TextSpan(text: value,
+                style: const TextStyle(fontWeight: FontWeight.normal)),
           ],
         ),
       ),

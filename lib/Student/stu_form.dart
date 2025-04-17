@@ -472,58 +472,84 @@ class _StudentFormState extends State<StudentForm> {
   }
 
   Future<void> uploadImage(ImageSource source) async {
-    final image = await ImagePicker().pickImage(source: source);
-    if (image == null) return;
+    try {
+      final XFile? image = await ImagePicker().pickImage(
+        source: source,
+        // Add this line to handle dismissal properly
+        preferredCameraDevice: CameraDevice.rear,
+      ).catchError((error) {
+        // Handle if user cancels the picker
+        print("Image picker cancelled: $error");
+        return null;
+      });
 
-    File imageFile = File(image.path);
+      if (image == null) return;
 
-    var croppedFile = await cropImage(imageFile);
+      File imageFile = File(image.path);
+      File? croppedFile = await cropImage(imageFile);
 
-    if (croppedFile != null) {
-      String base64Image = base64Encode(croppedFile.readAsBytesSync());
+      if (croppedFile == null) {
+        // User cancelled cropping
+        return;
+      }
+
+      String base64Image = base64Encode(await croppedFile.readAsBytes());
 
       setState(() {
         file = croppedFile;
       });
 
-      await uploadImageToServer(croppedFile, base64Image);
+      String newImageUrl = await uploadImageToServer(croppedFile, base64Image);
 
-      // setState(() {
-      //   imageUrl = imageUrl;
-      // });
+      setState(() {
+        imageUrl = newImageUrl;
+      });
+    } catch (e) {
+      print("Error in uploadImage: $e");
     }
   }
 
-  // Function to crop the selected image using the image_cropper package
   Future<File?> cropImage(File pickedFile) async {
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 100,
-      aspectRatioPresets: [
-        CropAspectRatioPreset.square,
-        CropAspectRatioPreset.ratio3x2,
-        CropAspectRatioPreset.original,
-        CropAspectRatioPreset.ratio4x3,
-        CropAspectRatioPreset.ratio16x9
-      ],
-      androidUiSettings: const AndroidUiSettings(
-        toolbarTitle: 'Crop Image',
-        toolbarColor: Colors.blue,
-        toolbarWidgetColor: Colors.white,
-        statusBarColor: Colors.blue,
-        backgroundColor: Colors.white,
-      ),
-      iosUiSettings: const IOSUiSettings(
-        minimumAspectRatio: 1.0,
-      ),
-    );
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 100,
+        aspectRatioPresets: [
+          CropAspectRatioPreset.square,
+          CropAspectRatioPreset.ratio3x2,
+          CropAspectRatioPreset.original,
+          CropAspectRatioPreset.ratio4x3,
+          CropAspectRatioPreset.ratio16x9
+        ],
+        androidUiSettings: const AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: Colors.blue,
+          toolbarWidgetColor: Colors.white,
+          statusBarColor: Colors.blue,
+          backgroundColor: Colors.white,
+          // Add these settings for better discard handling
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          hideBottomControls: false,
+        ),
+        iosUiSettings: const IOSUiSettings(
+          // minimumAspectRatio: 1.0,
+          // Add these settings for iOS
+          cancelButtonTitle: 'Cancel',
+          doneButtonTitle: 'Done',
+        ),
+      );
 
-    // Returning the edited/cropped image if available, otherwise the original image
-    if (croppedFile != null) {
+      if (croppedFile == null) {
+        // User pressed back or cancel
+        return null;
+      }
+
       return File(croppedFile.path);
-    } else {
-      return File(pickedFile.path);
+    } catch (e) {
+      print("Error in cropImage: $e");
+      return null;
     }
   }
 

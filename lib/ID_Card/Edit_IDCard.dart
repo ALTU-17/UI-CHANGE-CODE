@@ -57,6 +57,39 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
   }
 
   Future<void> _submitForm() async {
+    bool needsImage = false;
+    if (imageUrl.startsWith("http")) {
+      try {
+        final response = await http.head(Uri.parse(imageUrl));
+        if (response.statusCode == 404) {
+          needsImage = true;
+          print('Invalid image: 404 Not Found');
+          Fluttertoast.showToast(
+            msg: "Please Upload Student Profile picture",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+          return;
+        }
+      } catch (e) {
+        needsImage = true;
+        print('Invalid image: Error checking URL ($e)');
+      }
+    }
+
+    print('imageUrl: $imageUrl');
+    if(imageUrl.endsWith('/')){
+      Fluttertoast.showToast(
+        msg: "Please Upload Student Profile picture",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       if (_selectedBloodGroup == null || _selectedBloodGroup!.isEmpty) {
         Fluttertoast.showToast(
@@ -144,14 +177,28 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
 
 
   Future<void> uploadImage(ImageSource source) async {
-    final image = await ImagePicker().pickImage(source: source);
-    if (image == null) return;
+    try {
+      final XFile? image = await ImagePicker().pickImage(
+        source: source,
+        // Add this line to handle dismissal properly
+        preferredCameraDevice: CameraDevice.rear,
+      ).catchError((error) {
+        // Handle if user cancels the picker
+        print("Image picker cancelled: $error");
+        return null;
+      });
 
-    File imageFile = File(image.path);
-    var croppedFile = await cropImage(imageFile);
+      if (image == null) return;
 
-    if (croppedFile != null) {
-      String base64Image = base64Encode(croppedFile.readAsBytesSync());
+      File imageFile = File(image.path);
+      File? croppedFile = await cropImage(imageFile);
+
+      if (croppedFile == null) {
+        // User cancelled cropping
+        return;
+      }
+
+      String base64Image = base64Encode(await croppedFile.readAsBytes());
 
       setState(() {
         file = croppedFile;
@@ -160,36 +207,55 @@ class _EditStudentFormScreenState extends State<EditStudentFormScreen> {
       String newImageUrl = await uploadImageToServer(croppedFile, base64Image);
 
       setState(() {
-        imageUrl = newImageUrl; // Update UI instantly
+        imageUrl = newImageUrl;
       });
+    } catch (e) {
+      print("Error in uploadImage: $e");
     }
   }
 
   Future<File?> cropImage(File pickedFile) async {
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 100,
-      aspectRatioPresets: [
-        CropAspectRatioPreset.square,
-        CropAspectRatioPreset.ratio3x2,
-        CropAspectRatioPreset.original,
-        CropAspectRatioPreset.ratio4x3,
-        CropAspectRatioPreset.ratio16x9
-      ],
-      androidUiSettings: const AndroidUiSettings(
-        toolbarTitle: 'Crop Image',
-        toolbarColor: Colors.blue,
-        toolbarWidgetColor: Colors.white,
-        statusBarColor: Colors.blue,
-        backgroundColor: Colors.white,
-      ),
-      iosUiSettings: const IOSUiSettings(
-        minimumAspectRatio: 1.0,
-      ),
-    );
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 100,
+        aspectRatioPresets: [
+          CropAspectRatioPreset.square,
+          CropAspectRatioPreset.ratio3x2,
+          CropAspectRatioPreset.original,
+          CropAspectRatioPreset.ratio4x3,
+          CropAspectRatioPreset.ratio16x9
+        ],
+        androidUiSettings: const AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: Colors.blue,
+          toolbarWidgetColor: Colors.white,
+          statusBarColor: Colors.blue,
+          backgroundColor: Colors.white,
+          // Add these settings for better discard handling
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          hideBottomControls: false,
+        ),
+        iosUiSettings: const IOSUiSettings(
+          // minimumAspectRatio: 1.0,
+          // Add these settings for iOS
+          cancelButtonTitle: 'Cancel',
+          doneButtonTitle: 'Done',
+        ),
+      );
 
-    return croppedFile != null ? File(croppedFile.path) : File(pickedFile.path);
+      if (croppedFile == null) {
+        // User pressed back or cancel
+        return null;
+      }
+
+      return File(croppedFile.path);
+    } catch (e) {
+      print("Error in cropImage: $e");
+      return null;
+    }
   }
 
   Future<String> uploadImageToServer(File croppedImage, String base64Image) async {

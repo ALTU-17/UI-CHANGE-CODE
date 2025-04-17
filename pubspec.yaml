@@ -81,6 +81,11 @@ dependencies:
   qr_flutter: ^4.1.0
   lottie: ^2.0.0
   open_file: ^3.2.1
+
+  google_maps_flutter: ^2.7.0
+
+  google_maps_flutter_platform_interface: ^2.2.1
+#  geolocator: ^13.0.2
 #  package_info_plus: ^4.0.0  # Use the latest version available
 #  open_file: ^3.3.2
 

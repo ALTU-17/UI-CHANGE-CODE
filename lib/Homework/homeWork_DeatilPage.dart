@@ -416,6 +416,8 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
                             } else {
                               String downloadUrl = projectUrl +
                                   'uploads/homework/${widget.homeworkInfo.publishDate}/${widget.homeworkInfo.homeworkId}/${attachment.imageName}';
+                              print('Home downloadUrl: $downloadUrl');
+
                               if (Platform.isAndroid) {
                                 await downloadFile(downloadUrl, context, attachment.imageName);
                               } else if (Platform.isIOS) {

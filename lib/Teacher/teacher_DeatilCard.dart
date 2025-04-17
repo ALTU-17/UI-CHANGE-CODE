@@ -261,9 +261,10 @@ class TeacherDetailCard extends StatelessWidget {
                                                 ),
                                               );
                                             } else {
-                                              String downloadUrl =
-                                                  '$projectUrl/uploads/daily_notes/$formattedDate/$notesId/${attachment.imageName}';
+                                              String downloadUrl = projectUrl+'uploads/daily_notes/$date/$notesId/${attachment.imageName}';
+                                              print('Teacher downloadUrl: $downloadUrl');
                                               if (Platform.isAndroid) {
+                                                _permissionRequest();
                                                 await downloadFile(downloadUrl, context, attachment.imageName);
                                               } else if (Platform.isIOS) {
                                                 await _downloadFileIOS(downloadUrl,context, attachment.imageName);

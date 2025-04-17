@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:device_info/device_info.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:evolvu/Student/StudentDashboard.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:evolvu/username_page.dart';
@@ -169,10 +169,10 @@ class _LoginState extends State<LoginPage> {
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.androidId; // Returns the Android ID
+      return androidInfo.model; // Returns the Android ID
     } else if (Platform.isIOS) {
       IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.identifierForVendor; // Returns the iOS ID
+      return iosInfo.utsname.machine; // Returns the iOS ID
     }
     return 'Unknown';
   }

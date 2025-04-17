@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
-import 'package:evolvu/Student/StudentDashboard.dart';
 import 'package:evolvu/common/Common_dropDownFiled.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
@@ -302,7 +300,8 @@ class StudentForm extends StatefulWidget {
   final String secname;
   final String shortName1;
 
-  StudentForm(this.studentId, this.cname, this.shortName1, this.secname);
+  const StudentForm(this.studentId, this.cname, this.shortName1, this.secname,
+      {super.key});
 
   @override
   _StudentFormState createState() => _StudentFormState();
@@ -328,7 +327,24 @@ class _StudentFormState extends State<StudentForm> {
     }
   }
 
-  final List<String> admittedInClass =  [ 'Nursery','LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+  final List<String> admittedInClass = [
+    'Nursery',
+    'LKG',
+    'UKG',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '13'
+  ];
 
   Map<String, String> specsMapping = {
     'Y': 'YES',
@@ -452,7 +468,31 @@ class _StudentFormState extends State<StudentForm> {
         'short_name': shortName
       },
     );
-    imageUrl = "${projectUrl}uploads/student_image/$studentId.jpg";
+
+    http.Response get_student_profile_images_details = await http.post(
+      Uri.parse(url + "get_student_profile_images_details"),
+      body: {
+        'student_id': widget.studentId,
+        'short_name': shortName
+      },
+    );
+
+    // print('get_student_profile_images_details status code: ${get_student_profile_images_details.statusCode}');
+    // print('get_student_profile_images_details Response body====:>  ${get_student_profile_images_details.body}');
+
+    if (get_student_profile_images_details.statusCode == 200) {
+      Map<String, dynamic> responseData = json.decode(get_student_profile_images_details.body);
+      imageUrl = responseData['image_url'];
+      print('Image URL: $imageUrl');
+      if (imageUrl.hashCode == 404) {
+        print('Image not found, using default image.');
+        imageUrl = ""; // or set a default image URL if available
+      } else {
+        print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
+      }
+    }
+
+    // imageUrl = "${projectUrl}uploads/student_image/$studentId.jpg";
     print('Response status code: $imageUrl');
     print('get_student body: ${response.body}');
 
@@ -472,69 +512,90 @@ class _StudentFormState extends State<StudentForm> {
   }
 
   Future<void> uploadImage(ImageSource source) async {
-    final image = await ImagePicker().pickImage(source: source);
-    if (image == null) return;
+    try {
+      final XFile? image = await ImagePicker()
+          .pickImage(
+        source: source,
+        // Add this line to handle dismissal properly
+        preferredCameraDevice: CameraDevice.rear,
+      )
+          .catchError((error) {
+        // Handle if user cancels the picker
+        print("Image picker cancelled: $error");
+        return null;
+      });
 
-    File imageFile = File(image.path);
+      if (image == null) return;
 
-    var croppedFile = await cropImage(imageFile);
+      File imageFile = File(image.path);
+      File? croppedFile = await cropImage(imageFile);
 
-    if (croppedFile != null) {
-      String base64Image = base64Encode(croppedFile.readAsBytesSync());
+      if (croppedFile == null) {
+        // User cancelled cropping
+        return;
+      }
+
+      String base64Image = base64Encode(await croppedFile.readAsBytes());
 
       setState(() {
         file = croppedFile;
       });
 
-      await uploadImageToServer(croppedFile, base64Image);
+      String newImageUrl = await uploadImageToServer(croppedFile, base64Image);
 
-      // setState(() {
-      //   imageUrl = imageUrl;
-      // });
+      setState(() {
+        imageUrl = newImageUrl;
+      });
+    } catch (e) {
+      print("Error in uploadImage: $e");
     }
   }
 
-  // Function to crop the selected image using the image_cropper package
   Future<File?> cropImage(File pickedFile) async {
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 100,
-      aspectRatioPresets: [
-        CropAspectRatioPreset.square,
-        CropAspectRatioPreset.ratio3x2,
-        CropAspectRatioPreset.original,
-        CropAspectRatioPreset.ratio4x3,
-        CropAspectRatioPreset.ratio16x9
-      ],
-      androidUiSettings: const AndroidUiSettings(
-        toolbarTitle: 'Crop Image',
-        toolbarColor: Colors.blue,
-        toolbarWidgetColor: Colors.white,
-        statusBarColor: Colors.blue,
-        backgroundColor: Colors.white,
-      ),
-      iosUiSettings: const IOSUiSettings(
-        minimumAspectRatio: 1.0,
-      ),
-    );
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 100,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: Colors.blue,
+            toolbarWidgetColor: Colors.white,
+            statusBarColor: Colors.blue,
+            backgroundColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+          ),
+          IOSUiSettings(
+            cancelButtonTitle: 'Cancel',
+            doneButtonTitle: 'Done',
+          ),
+        ],
+      );
 
-    // Returning the edited/cropped image if available, otherwise the original image
-    if (croppedFile != null) {
+      if (croppedFile == null) {
+        // User pressed back or cancel
+        return null;
+      }
+
       return File(croppedFile.path);
-    } else {
-      return File(pickedFile.path);
+    } catch (e) {
+      print("Error in cropImage: $e");
+      return null;
     }
   }
 
-  Future<String> uploadImageToServer(File croppedImage, String base64Image) async {
+  Future<String> uploadImageToServer(
+      File croppedImage, String base64Image) async {
     try {
       var response = await http.post(
         Uri.parse("${url}upload_student_profile_image_into_folder"),
         body: {
           'student_id': widget.studentId,
           'short_name': shortName,
-          'filename': widget.studentId+".jpg",
+          'filename': "${widget.studentId}.jpg",
           'doc_type_folder': 'student_image',
           'filedata': base64Image,
         },
@@ -546,7 +607,8 @@ class _StudentFormState extends State<StudentForm> {
         print("Error uploading image: $base64Image");
 
         setState(() {
-          imageUrl = "${projectUrl}uploads/student_image/${widget.studentId}.jpg?timestamp=${DateTime.now().millisecondsSinceEpoch}";
+          imageUrl =
+          "${projectUrl}uploads/student_image/${widget.studentId}.jpg?timestamp=${DateTime.now().millisecondsSinceEpoch}";
         });
 
         // Assuming the server responds with a JSON containing the image URL
@@ -585,7 +647,6 @@ class _StudentFormState extends State<StudentForm> {
         // );
 
         return imageUrl;
-
       } else {
         Fluttertoast.showToast(
           msg: "Profile Picture Not updated successfully",
@@ -667,8 +728,6 @@ class _StudentFormState extends State<StudentForm> {
     }
   }
 
-
-
   _init() async {
     childInfo = await _getSchoolInfo(widget.studentId);
 
@@ -696,7 +755,6 @@ class _StudentFormState extends State<StudentForm> {
                   height: 200.h,
                   width: 200.w,
                   child: Stack(
-
                     children: [
                       Positioned(
                         height: 150.w,
@@ -704,8 +762,10 @@ class _StudentFormState extends State<StudentForm> {
                         right: 0,
                         top: 10.h,
                         child: CircleAvatar(
-                          radius: 75.w, // Adjust the radius to make the image circular
-                          backgroundColor: Colors.grey[200], // Placeholder color
+                          radius: 75
+                              .w, // Adjust the radius to make the image circular
+                          backgroundColor:
+                          Colors.grey[200], // Placeholder color
                           backgroundImage: imageUrl.isNotEmpty
                               ? NetworkImage(
                             imageUrl,
@@ -777,7 +837,8 @@ class _StudentFormState extends State<StudentForm> {
                   showRedAsterisk: true,
                   readOnly: true,
                   initialValue: childInfo?.dob != null
-                      ? DateFormat('dd-MM-yyyy').format(DateTime.parse(childInfo!.dob!))
+                      ? DateFormat('dd-MM-yyyy')
+                      .format(DateTime.parse(childInfo!.dob!))
                       : '',
                 ),
 
@@ -788,8 +849,9 @@ class _StudentFormState extends State<StudentForm> {
                   showRedAsterisk: true,
                   readOnly: true,
                   // isRequired: true,
-                  initialValue: childInfo?.admissionDate!= null
-                      ? DateFormat('dd-MM-yyyy').format(DateTime.parse(childInfo!.admissionDate!))
+                  initialValue: childInfo?.admissionDate != null
+                      ? DateFormat('dd-MM-yyyy').format(
+                      DateTime.parse(childInfo!.admissionDate!))
                       : '',
                 ),
 
@@ -837,12 +899,27 @@ class _StudentFormState extends State<StudentForm> {
                 //   Text('House: ${getFullHouseName(childInfo!.house)}'),
 
                 HashLabeledDropdown(
-                  label:
-                  "Admitted In Class", // Keep the label static
-                  options: [ 'Nursery','LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'],
+                  label: "Admitted In Class", // Keep the label static
+                  options: [
+                    'Nursery',
+                    'LKG',
+                    'UKG',
+                    '1',
+                    '2',
+                    '3',
+                    '4',
+                    '5',
+                    '6',
+                    '7',
+                    '8',
+                    '9',
+                    '10',
+                    '11',
+                    '12',
+                    '13'
+                  ],
 
-                  selectedValue:
-                  getGender(childInfo!.admissionClass),
+                  selectedValue: getGender(childInfo!.admissionClass),
                   onChanged: (String? newValue) {
                     setState(() {
                       if (newValue != null) {
@@ -852,11 +929,10 @@ class _StudentFormState extends State<StudentForm> {
                   },
                 ),
 
-                SizedBox(
-                    width: 16.w), // Space between the two fields
+                SizedBox(width: 16.w), // Space between the two fields
                 // Class Field
                 StuTextField(
-                  initialValue: widget?.cname,
+                  initialValue: widget.cname,
                   label: 'Class',
                   name: 'Class',
                   showRedAsterisk: true,
@@ -864,7 +940,7 @@ class _StudentFormState extends State<StudentForm> {
                   readOnly: true,
                 ),
                 StuTextField(
-                  initialValue: widget?.secname,
+                  initialValue: widget.secname,
                   readOnly: true,
                   label: 'Division',
                   showRedAsterisk: true,
@@ -884,10 +960,6 @@ class _StudentFormState extends State<StudentForm> {
                   label: "Gender",
 
                   options: ['Male', 'Female'],
-
-
-
-
 
                   selectedValue: getGender(childInfo?.gender) ??
                       'Male', // Default to a valid option
@@ -919,7 +991,8 @@ class _StudentFormState extends State<StudentForm> {
                   onChanged: (String? newValue) {
                     setState(() {
                       if (newValue != null) {
-                        childInfo?.bloodGroup = newValue; // Update the selected value
+                        childInfo?.bloodGroup =
+                            newValue; // Update the selected value
                       }
                     });
                   },
@@ -936,10 +1009,8 @@ class _StudentFormState extends State<StudentForm> {
                       if (newValue != null) {
                         selectedHouseName =
                             newValue; // Update the selected house name
-                        selectedHouseId = houses.firstWhere(
-                                (house) =>
-                            house['house_name'] ==
-                                newValue)[
+                        selectedHouseId = houses.firstWhere((house) =>
+                        house['house_name'] == newValue)[
                         'house_id']; // Update the house ID based on the selected house name
                       }
                     });
@@ -1129,8 +1200,7 @@ class _StudentFormState extends State<StudentForm> {
                       'Select', // Default to 'Select' if null
                   onChanged: (String? newValue) {
                     setState(() {
-                      if (newValue != null &&
-                          newValue != 'Select') {
+                      if (newValue != null && newValue != 'Select') {
                         selectedTrans = newValue;
                         childInfo?.transportMode =
                             valueMapping[newValue] ?? '';
@@ -1173,9 +1243,13 @@ class _StudentFormState extends State<StudentForm> {
                     String? aadharNumber = childInfo?.stuAadhaarNo;
 
                     // Check if Aadhar number is empty or not exactly 12 digits
-                    if (aadharNumber == null || aadharNumber.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(aadharNumber)) {
+                    if (aadharNumber == null ||
+                        aadharNumber.length != 12 ||
+                        !RegExp(r'^[0-9]{12}$')
+                            .hasMatch(aadharNumber)) {
                       Fluttertoast.showToast(
-                        msg: "Enter a valid 12-digit numeric Aadhar number",
+                        msg:
+                        "Enter a valid 12-digit numeric Aadhar number",
                         toastLength: Toast.LENGTH_LONG,
                         gravity: ToastGravity.BOTTOM,
                         backgroundColor: Colors.red,
@@ -1185,7 +1259,8 @@ class _StudentFormState extends State<StudentForm> {
                       return; // Stop execution if validation fails
                     }
 
-                    if (childInfo?.nationality == '' || childInfo?.nationality == ' ' ) {
+                    if (childInfo?.nationality == '' ||
+                        childInfo?.nationality == ' ') {
                       Fluttertoast.showToast(
                         msg: "Please enter nationality",
                         toastLength: Toast.LENGTH_SHORT,
@@ -1271,17 +1346,13 @@ class _StudentFormState extends State<StudentForm> {
                         Uri.parse("${url}update_student"),
                         body: {
                           'short_name': shortName ?? '',
-                          'student_id':
-                          childInfo?.studentId ?? '',
+                          'student_id': childInfo?.studentId ?? '',
                           'gender': childInfo?.gender ?? '',
-                          'blood_group':
-                          childInfo?.bloodGroup ?? '',
+                          'blood_group': childInfo?.bloodGroup ?? '',
                           'stu_aadhaar_no':
                           childInfo?.stuAadhaarNo ?? '',
-                          'nationality':
-                          childInfo?.nationality ?? '',
-                          'permant_add':
-                          childInfo?.permantAdd ?? '',
+                          'nationality': childInfo?.nationality ?? '',
+                          'permant_add': childInfo?.permantAdd ?? '',
                           'city': childInfo?.city ?? '',
                           'state': childInfo?.state ?? '',
                           'pincode': childInfo?.pincode ?? '',
@@ -1296,11 +1367,9 @@ class _StudentFormState extends State<StudentForm> {
                           childInfo?.emergencyAdd ?? '',
                           'transport_mode':
                           childInfo?.transportMode ?? '',
-                          'vehicle_no':
-                          childInfo?.vehicleNo ?? '',
+                          'vehicle_no': childInfo?.vehicleNo ?? '',
                           'has_specs': childInfo?.hasSpecs ?? '',
-                          'birth_place':
-                          childInfo?.birthPlace ?? '',
+                          'birth_place': childInfo?.birthPlace ?? '',
                           'mother_tongue':
                           childInfo?.motherTongue ?? '',
                           'stud_id_no': childInfo?.studIdNo ?? '',
@@ -1334,7 +1403,10 @@ class _StudentFormState extends State<StudentForm> {
                         // Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academic_yrstr,shortName: shortName)),
+                          MaterialPageRoute(
+                              builder: (_) => ParentDashBoardPage(
+                                  academic_yr: academic_yrstr,
+                                  shortName: shortName)),
                         );
                       } else {
                         Fluttertoast.showToast(

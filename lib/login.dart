@@ -222,7 +222,7 @@ class _LoginState extends State<LoginPage> {
 
       http.Response response = await http.post(
         Uri.parse(url+"get_login"),
-        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId},
+        body: {'user_id': ema, 'password': pass,'short_name': shortName,'device_id':deviceId,'token':token},
       );
 
       print('Response status code: ${response.statusCode}');

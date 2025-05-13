@@ -70,10 +70,15 @@ class UserNamePage extends StatefulWidget {
 class _LoginDemoState extends State<UserNamePage> {
   late BuildContext _context;
   String BaseURl = "";
+  String packageInfoVar ='';
 
   @override
   void initState() {
     super.initState();
+    PackageInfo.fromPlatform().then((value) {
+      packageInfoVar = value.version;
+      print(value); // Value will be our all details we get from package info package
+    });
     // email = TextEditingController(text: widget.emailstr);
     checkLoginStatus();
 
@@ -249,7 +254,7 @@ class _LoginDemoState extends State<UserNamePage> {
                     ),
                     Center(
                       child: Text(
-                        'Don\'t miss any update from school.  Follow your child\'s activity and   progress with our smart Parent App.',
+                        'Don\'t miss any update from school. Follow your child\'s activity and progress with our smart Parent App.',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -350,46 +355,13 @@ class _LoginDemoState extends State<UserNamePage> {
 
                     SizedBox(height: 20),
                     Text(
-                      'Fv1.0.0',
+                      packageInfoVar,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    // SizedBox(height: 50),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //   children: [
-                    //     Container(
-                    //       width: 60,
-                    //       height: 60,
-                    //       decoration: BoxDecoration(
-                    //         image: DecorationImage(
-                    //           image: AssetImage('assets/chemistry.png'),
-                    //         ),
-                    //       ),
-                    //     ),
-                    //     Container(
-                    //       width: 60,
-                    //       height: 60,
-                    //       decoration: BoxDecoration(
-                    //         image: DecorationImage(
-                    //           image: AssetImage('assets/nextimg.png'),
-                    //         ),
-                    //       ),
-                    //     ),
-                    //     Container(
-                    //       width: 60,
-                    //       height: 60,
-                    //       decoration: BoxDecoration(
-                    //         image: DecorationImage(
-                    //           image: AssetImage('assets/cup.png'),
-                    //         ),
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
 
                     Padding(
                       padding: const EdgeInsets.only(top: 10.0),
@@ -415,7 +387,8 @@ class _LoginDemoState extends State<UserNamePage> {
   Future<void> getURL() async {
 
     final apiService = ApiService();
-
+    // final packageInfo = await PackageInfo.fromPlatform();
+    // packageInfoVar = packageInfo.version;
     try {
       // Call the API and get the cleaned response
       BaseURl = await apiService.fetchUrl();
@@ -539,22 +512,25 @@ class _LoginDemoState extends State<UserNamePage> {
   Future<void> getVersion(BuildContext _context) async {
     print('latest_version11 => ${BaseURl + 'flutter_latest_version'}');
 
-    final url = Uri.parse(BaseURl + 'flutter_latest_version'); // Assuming BaseURl is your base URL
+    final url = Uri.parse(BaseURl + 'flutter_latest_version');
 
     try {
-      final response = await http.post(url);
+      final response = await http.post(url,body: {
+        'type':'android'
+      },);
       print('latest_version => ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         print('latest_version => ${response.body}');
 
-        // Check if jsonData is a list and extract the first item if it is
         if (jsonData is List && jsonData.isNotEmpty) {
           final packageInfo = await PackageInfo.fromPlatform();
+          packageInfoVar = packageInfo.version;
           print('Current_version => ${packageInfo.version}');
+          print('Current_version packageInfoVar=> ${packageInfoVar}');
 
-          final androidVersion = jsonData[0]['latest_version'] as String; // Ensure this is a String
+          final androidVersion = jsonData[0]['latest_version'] as String;
           final releaseNotes = jsonData[0]['release_notes'] as String;
           final forcedUpdate = jsonData[0]['forced_update'] as String;
 
@@ -574,7 +550,7 @@ class _LoginDemoState extends State<UserNamePage> {
                   context: _context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: Text('V ${packageInfo.version}'),
+                      title: Text('V ${androidVersion}'),
                       content: Text(releaseNotes),
                       actions: [
                         TextButton(
@@ -603,29 +579,32 @@ class _LoginDemoState extends State<UserNamePage> {
 
                 showDialog(
                   context: _context,
+                  barrierDismissible: false, // Prevent dismissing the dialog
                   builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('V ${packageInfo.version}'),
-                      content: Text(releaseNotes),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            launchUrl(Uri.parse(
-                                'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
-                          },
-                          child: Text(
-                            'Update',
-                            style: TextStyle(
-                                color: Colors.green, fontWeight: FontWeight.bold),
+                    return WillPopScope(
+                      onWillPop: () async => false, // Disable back button
+                      child: AlertDialog(
+                        title: Text('V ${androidVersion}'),
+                        content: Text(releaseNotes),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              launchUrl(Uri.parse(
+                                  'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                            },
+                            child: Text(
+                              'Update',
+                              style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 );
-              }
-            }
-          }
+              }}}
         } else {
           print("Unexpected JSON format");
         }

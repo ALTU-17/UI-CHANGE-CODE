@@ -314,19 +314,19 @@ class _TimeTablePageState extends State<TimeTablePage> {
                 ),
               ),
             ),
-            Expanded(
-              child: Text(
-                ' ${period.teacher}',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 139, 40, 95),
-                ),
-                overflow: TextOverflow.ellipsis, // This ensures the text is truncated with ellipsis if too long
-                softWrap: false, // Prevents text from wrapping to the next line
-                maxLines: 1, // Ensures the text takes up only one line
-              ),
-            ),
+            // Expanded(
+            //   child: Text(
+            //     ' ${period.teacher}',
+            //     style: TextStyle(
+            //       fontSize: 13.sp,
+            //       fontWeight: FontWeight.bold,
+            //       color: Color.fromARGB(255, 139, 40, 95),
+            //     ),
+            //     overflow: TextOverflow.ellipsis, // This ensures the text is truncated with ellipsis if too long
+            //     softWrap: false, // Prevents text from wrapping to the next line
+            //     maxLines: 1, // Ensures the text takes up only one line
+            //   ),
+            // ),
           ],
         ),
       ),

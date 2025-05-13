@@ -323,7 +323,9 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
     final url = Uri.parse(BaseURl + 'flutter_latest_version'); // Assuming BaseURl is your base URL
 
     try {
-      final response = await http.post(url);
+      final response = await http.post(url,body: {
+        'type':'android'
+      },);
       print('latest_version => ${response.statusCode}');
 
       if (response.statusCode == 200) {
@@ -355,7 +357,7 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
                   context: _context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: Text('V ${packageInfo.version}'),
+                      title: Text('V ${androidVersion}'),
                       content: Text(releaseNotes),
                       actions: [
                         TextButton(
@@ -384,23 +386,27 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
 
                 showDialog(
                   context: _context,
+                  barrierDismissible: false, // Prevent dismissing the dialog
                   builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('V ${packageInfo.version}'),
-                      content: Text(releaseNotes),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            launchUrl(Uri.parse(
-                                'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
-                          },
-                          child: Text(
-                            'Update',
-                            style: TextStyle(
-                                color: Colors.green, fontWeight: FontWeight.bold),
+                    return WillPopScope(
+                      onWillPop: () async => false, // Disable back button
+                      child: AlertDialog(
+                        title: Text('V ${androidVersion}'),
+                        content: Text(releaseNotes),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              launchUrl(Uri.parse(
+                                  'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool'));
+                            },
+                            child: Text(
+                              'Update',
+                              style: TextStyle(
+                                  color: Colors.green, fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 );

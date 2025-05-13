@@ -1046,10 +1046,10 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
 
                                   // SizedBox(width: 45.w),
 
-                                  if (GET_URL == "https://api.aceventura.in/evolvuURL/get_url")
-                                    BlinkingBadge(text: 'LIVE', textColor: Colors.red)
-                                  else
-                                    BlinkingBadge(text: 'TEST', textColor: Colors.green),
+                                  // if (GET_URL == "https://api.aceventura.in/evolvuURL/get_url")
+                                  //   BlinkingBadge(text: 'LIVE', textColor: Colors.red)
+                                  // else
+                                  //   BlinkingBadge(text: 'TEST', textColor: Colors.green),
                                 ],
                               ),
                             ),

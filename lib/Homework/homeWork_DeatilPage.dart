@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Teacher/Attachment.dart';
@@ -429,11 +430,11 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
                                   ),
                                 );
                               }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('File Download Successfully '),
-                                ),
-                              );
+                              // ScaffoldMessenger.of(context).showSnackBar(
+                              //   SnackBar(
+                              //     content: Text('File Download Successfully '),
+                              //   ),
+                              // );
                             }
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -485,33 +486,39 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
     super.dispose();
   }
 
-   downloadFile(String url, BuildContext context, String name) async {
 
 
-     const AndroidNotificationDetails androidPlatformChannelSpecifics =
-     AndroidNotificationDetails(
-       'download_channel',
-       'Download Channel',
-       channelDescription: 'Notifications for file downloads',
-       importance: Importance.high,
-       priority: Priority.high,
-       showProgress: true,
-       onlyAlertOnce: true,
-     );
+  Future<void> downloadFile(String url, BuildContext context, String name) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
 
-     const NotificationDetails platformChannelSpecifics =
-     NotificationDetails(android: androidPlatformChannelSpecifics);
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    var directory =
-        Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Homework");
+    var directory = Directory(
+        "/storage/emulated/0/Download/Evolvuschool/Parent");
 
-    // Ensure the directory exists
     if (!await directory.exists()) {
       await directory.create(recursive: true);
     }
 
     var path = "${directory.path}/$name";
     var file = File(path);
+
+    // await flutterLocalNotificationsPlugin.show(
+    //   0,
+    //   'Downloading Receipt',
+    //   'Downloading $name...',
+    //   platformChannelSpecifics,
+    // );
 
     try {
       var res = await http.get(Uri.parse(url));
@@ -520,7 +527,7 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
       await flutterLocalNotificationsPlugin.show(
         0,
         'Download Complete',
-        'File saved to Download/Evolvuschool/Parent/Homework/$name',
+        'File saved to Download/Evolvuschool/Parent/$name',
         platformChannelSpecifics,
         payload: path, // Pass the file path as payload
       );
@@ -528,11 +535,10 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'File downloaded successfully: Download/Evolvuschool/Parent/Homework'),
+              'File downloaded successfully: Download/Evolvuschool/Parent'),
         ),
       );
     } catch (e) {
-
       await flutterLocalNotificationsPlugin.show(
         0,
         'Download Failed',
@@ -545,6 +551,10 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
           content: Text('Failed to download file: $e'),
         ),
       );
+    } finally {
+      // setState(() {
+      //   _isDownloading = false; // Hide loader after completion
+      // });
     }
   }
 

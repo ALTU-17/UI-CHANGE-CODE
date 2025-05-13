@@ -1,3 +1,4 @@
+import 'package:evolvu/EvolvUSplashScreen.dart';
 import 'package:evolvu/login.dart';
 import 'package:evolvu/username_page.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -129,7 +130,7 @@ class MyApp extends StatelessWidget {
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: UserNamePage(),
+            child: SplashScreen(),
           ),
         );
       },

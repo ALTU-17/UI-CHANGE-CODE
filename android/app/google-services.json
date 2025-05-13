@@ -12,12 +12,7 @@
           "package_name": "altu.ace.dimp.flutter.parentapp"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "822080592108-t0su6kfrjqgejomrk7r1uf8l623atsih.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyB1MBLUWiQzbMQsWMDN0l1ItQejqCSUK_0"
@@ -25,12 +20,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "822080592108-t0su6kfrjqgejomrk7r1uf8l623atsih.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     },
@@ -41,28 +31,7 @@
           "package_name": "in.aceventura.evolvuschool"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "822080592108-fqs7qsmjh74sd18sn82r15jpnros6n3j.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "in.aceventura.evolvuschool",
-            "certificate_hash": "ee6d5b890976802bc05c53ec4eb1f2b980c10262"
-          }
-        },
-        {
-          "client_id": "822080592108-unies40bfho9t3r838hok30mguv43tds.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "in.aceventura.evolvuschool",
-            "certificate_hash": "1a1aa589be6f7820137af7e449b7fd2818fbdb9f"
-          }
-        },
-        {
-          "client_id": "822080592108-t0su6kfrjqgejomrk7r1uf8l623atsih.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyB1MBLUWiQzbMQsWMDN0l1ItQejqCSUK_0"
@@ -70,12 +39,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "822080592108-t0su6kfrjqgejomrk7r1uf8l623atsih.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

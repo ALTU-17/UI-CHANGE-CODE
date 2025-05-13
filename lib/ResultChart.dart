@@ -526,7 +526,7 @@ class _ResultChartState extends State<ResultChart> {
                   },
                 ),
 
-                centerSpaceRadius: 85,
+                centerSpaceRadius: 70,
                 sections: chartSections, // Dynamic data
               ),
             ),

@@ -1,4 +1,4 @@
-//package altu.ace.dimp.flutter.parentapp
+//package in.aceventura.evolvuschool
 //
 //import android.app.NotificationChannel
 //import android.app.NotificationManager

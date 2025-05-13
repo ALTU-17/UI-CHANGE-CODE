@@ -185,7 +185,7 @@ class TeacherDetailCard extends StatelessWidget {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                SizedBox(height: 80.h),
+                SizedBox(height: 100.h),
                 Text(
                   "Teacher Note Details",
                   style: TextStyle(
@@ -316,6 +316,10 @@ class TeacherDetailCard extends StatelessWidget {
 
   downloadFile(String url, BuildContext context, String name) async {
 
+    // setState(() {
+    //   _isDownloading = true; // Show loader
+    // });
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
     AndroidNotificationDetails(
       'download_channel',
@@ -330,7 +334,7 @@ class TeacherDetailCard extends StatelessWidget {
     const NotificationDetails platformChannelSpecifics =
     NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/TeacherNote");
+    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent");
 
     if (!await directory.exists()) {
       await directory.create(recursive: true);
@@ -350,18 +354,18 @@ class TeacherDetailCard extends StatelessWidget {
       var res = await http.get(Uri.parse(url));
       await file.writeAsBytes(res.bodyBytes);
 
-      // Update notification to show download complete
       await flutterLocalNotificationsPlugin.show(
         0,
         'Download Complete',
-        'File saved to Download/Evolvuschool/Parent/TeacherNote/$name',
+        'File saved to Download/Evolvuschool/Parent/$name',
         platformChannelSpecifics,
         payload: path, // Pass the file path as payload
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('File downloaded successfully: Download/Evolvuschool/Parent/TeacherNote'),
+          content: Text(
+              'File downloaded successfully: Download/Evolvuschool/Parent'),
         ),
       );
     } catch (e) {
@@ -374,9 +378,13 @@ class TeacherDetailCard extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to download file'),
+          content: Text('Failed to download file: $e'),
         ),
       );
+    } finally {
+      // setState(() {
+      //   _isDownloading = false; // Hide loader after completion
+      // });
     }
   }
 

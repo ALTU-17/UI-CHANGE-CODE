@@ -26,19 +26,34 @@ class WebViewPage extends StatefulWidget {
 
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
+  bool _isLoading = true; // Add a state variable for loading
 
   @override
   void initState() {
     super.initState();
 
     print("WEBVIEW URL: " +
-        widget.smartchat_url+'?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
+        widget.smartchat_url +
+        '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(
-          widget.smartchat_url+'?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
-
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (url) {
+            setState(() {
+              _isLoading = true; // Show loading indicator when page starts loading
+            });
+          },
+          onPageFinished: (url) {
+            setState(() {
+              _isLoading = false; // Hide loading indicator when page finishes loading
+            });
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.smartchat_url +
+          '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
   }
 
   @override
@@ -55,23 +70,31 @@ class _WebViewPageState extends State<WebViewPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 100.h),
-            Expanded(
-              child: WebViewWidget(controller: _controller),
+      body: Stack(
+        children: [
+          Container(
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.pink, Colors.blue],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                SizedBox(height: 100.h),
+                Expanded(
+                  child: WebViewWidget(controller: _controller),
+                ),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Center(
+              child: CircularProgressIndicator(), // Display loading spinner
+            ),
+        ],
       ),
     );
   }

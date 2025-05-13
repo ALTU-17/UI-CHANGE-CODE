@@ -1957,12 +1957,12 @@ class _StudentCardItemState extends State<StudentCardItem> {
                 // Student Image Section
                 Column(
                   children: [
-                    if (GET_URL ==
-                        "https://api.aceventura.in/evolvuURL/get_url")
-                      BlinkingBadge(text: 'LIVE', textColor: Colors.red)
-                    else
-                      BlinkingBadge(text: 'TEST', textColor: Colors.green),
-                    SizedBox(height: 3.h),
+                    // if (GET_URL ==
+                    //     "https://api.aceventura.in/evolvuURL/get_url")
+                    //   BlinkingBadge(text: 'LIVE', textColor: Colors.red)
+                    // else
+                    //   BlinkingBadge(text: 'TEST', textColor: Colors.green),
+                    // SizedBox(height: 3.h),
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(

@@ -194,6 +194,8 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
           _showSnackBar('File not uploaded properly');
         } else {
           String downloadUrl = '$projectUrl/uploads/remark/${widget.remarkInfo.remarkDate}/${widget.remarkInfo.remarkId}/${attachment.imageName}';
+          print('Home downloadUrl: $downloadUrl');
+
           if (Platform.isAndroid) {
             await downloadFile(downloadUrl, context, attachment.imageName);
           } else if (Platform.isIOS) {
@@ -201,7 +203,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
           } else {
             _showSnackBar('Unsupported platform');
           }
-          _showSnackBar('File downloaded successfully.');
+          // _showSnackBar('File downloaded successfully.');
         }
       } catch (e) {
         _showSnackBar('Failed to download file: $e');
@@ -231,7 +233,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
     const NotificationDetails platformChannelSpecifics =
     NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/Remarks");
+    var directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent");
 
     if (!await directory.exists()) {
       await directory.create(recursive: true);
@@ -254,7 +256,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
       await flutterLocalNotificationsPlugin.show(
         0,
         'Download Complete',
-        'File saved to Download/Evolvuschool/Parent/Remarks/$name',
+        'File saved to Download/Evolvuschool/Parent/$name',
         platformChannelSpecifics,
         payload: path, // Pass the file path as payload
       );
@@ -262,7 +264,7 @@ class _RemarkDetailPageState extends State<RemarkDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'File downloaded successfully: Download/Evolvuschool/Parent/Remarks'),
+              'File downloaded successfully: Download/Evolvuschool/Parent'),
         ),
       );
     } catch (e) {

@@ -94,7 +94,10 @@ class _TimeTablePageState extends State<TimeTablePage> {
 
       if (response.statusCode == 200) {
         print('Timetable Response: ${response.body}');
-
+        if (response.body.trim().isEmpty) {
+          print("Empty API response");
+          return;
+        }
         List<dynamic> data = json.decode(response.body);
         if (data.isEmpty) {
           setState(() {

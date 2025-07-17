@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../Teacher/Attachment.dart';
+import '../Teacher/textSanitizer.dart';
 
 class Remark {
   final String remarkId;
@@ -48,9 +49,13 @@ class Remark {
   });
 
   factory Remark.fromJson(Map<String, dynamic> json) {
+    String rawDescription = json['remark_desc'] ?? '';
+    String cleanedDescription = TextSanitizer.cleanText(rawDescription);
+
     return Remark(
       remarkId: json['remark_id']?.toString() ?? '',
-      remarkDesc: json['remark_desc']?.toString() ?? '',
+      // remarkDesc: json['remark_desc']?.toString() ?? '',
+      remarkDesc: cleanedDescription,
       remarkSubject: json['remark_subject']?.toString() ?? '',
       remarkType: json['remark_type']?.toString() ?? '',
       remarkDate: json['remark_date']?.toString() ?? '',
@@ -132,7 +137,7 @@ class RemarkNoteCard extends StatelessWidget {
                               const SizedBox(height: 5),
                               _buildRichText('Teacher: ', trimTeacherName(teacher)),
                               const SizedBox(height: 5),
-                              _buildRichText('Remark Subject: ', remarksubject, maxLines: 1),
+                              _buildRichText('Remark Subject: ', trimTeacherName1(remarksubject), maxLines: 1),
                             ],
                           ),
                         ),
@@ -187,5 +192,8 @@ class RemarkNoteCard extends StatelessWidget {
   String trimTeacherName(String name) {
     List<String> parts = name.split(' ');
     return parts.length > 1 ? '${parts[0]} ${parts[1]}' : name;
+  } String trimTeacherName1(String name) {
+    List<String> parts = name.split(' ');
+    return parts.length > 4 ? '${parts[0]} ${parts[1]}' : name;
   }
 }

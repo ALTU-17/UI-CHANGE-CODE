@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:evolvu/Teacher/teacher_DeatilCard.dart';
+import 'package:evolvu/Teacher/textSanitizer.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -37,10 +38,13 @@ class TeacherNote {
   });
 
   factory TeacherNote.fromJson(Map<String, dynamic> json) {
+    String rawDescription = json['description'] ?? '';
+    String cleanedDescription = TextSanitizer.cleanText(rawDescription);
+
     return TeacherNote(
       notesId: json['notes_id'],
       date: json['date'],
-      description: json['description'],
+      description: cleanedDescription,
       name: json['name'],
       subjectName: json['subject_name'] ?? 'N/A',
       className: json['classname'],

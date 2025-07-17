@@ -42,6 +42,7 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
       };
 
       final response = await http.post(Uri.parse(apiUrl), body: params);
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);

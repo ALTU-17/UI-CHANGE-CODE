@@ -298,10 +298,12 @@ class _ResultChartState extends State<ResultChart> {
       )
           : Column(
         children: [
+          Center(child: Text('       Marks in Percentage',style: TextStyle(fontWeight: FontWeight.bold),),),
+          SizedBox(height: 20),
           _buildTermTitles(),
-          SizedBox(height: 8),
+          // SizedBox(height: 2),
           SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+            // scrollDirection: Axis.horizontal,
             child: Column(
               children: _buildSubjectRows(),
             ),
@@ -319,8 +321,10 @@ class _ResultChartState extends State<ResultChart> {
       padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
         children: [
-          const SizedBox(width: 95), // For the subject name column
+
+           SizedBox(width: 70), // For the subject name column
           // Wrap exam titles in a horizontal scroll view
+
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -332,7 +336,7 @@ class _ResultChartState extends State<ResultChart> {
                     child: Text(
                       subjectData['Exam_name'],
                       style: TextStyle(
-                        fontSize: 9.5,
+                        fontSize: 8.5,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
@@ -364,7 +368,20 @@ class _ResultChartState extends State<ResultChart> {
               (detail) => detail['Subject'] == subject,
           orElse: () => <String, dynamic>{'Percentage': 'N/A'}, // Use 'N/A' if no score
         );
-        return details['Percentage']?.toString() ?? 'N/A'; // Convert to string
+        if (details.containsKey('Percentage') && details['Percentage'].toString().trim().isNotEmpty) {
+          return details['Percentage'].toString();
+        }
+        else if (details.containsKey('Grade') && details['Grade'].toString().trim().isNotEmpty) {
+          return "GRADE:${details['Grade']}";   // Mark it so UI knows it's a grade
+        }
+        else if (details.containsKey('Marks') && details['Marks'].toString().trim().isNotEmpty) {
+          return "MARKS:${details['Marks']}";   // Optional
+        }
+        else {
+          return "N/A";
+        }
+
+
       }).toList();
 
       return _buildSubjectBar(subject, scores);
@@ -386,17 +403,81 @@ class _ResultChartState extends State<ResultChart> {
           ),
           // Display each exam's score as a segment
           ...List.generate(scores.length, (index) {
-            int? previousValidScore = _getPreviousValidScore(scores, index);
-            int? currentScore = int.tryParse(scores[index]);
+            String value = scores[index];
 
-            return currentScore != null
-                ? _buildBarSegment(currentScore, previousValidScore)
-                : _buildNABarSegment(); // Fallback for "N/A" scores
+// If it's numeric → percentage
+            if (RegExp(r"^\d+$").hasMatch(value)) {
+              int? previousScore = _getPreviousValidScore(scores, index);
+              return _buildBarSegment(int.parse(value), previousScore);
+            }
+
+// If it's a grade ("GRADE:A")
+            if (value.startsWith("GRADE:")) {
+              return _buildGradeSegment(value.split(":")[1]);
+            }
+
+// If it's marks only ("MARKS:45")
+            if (value.startsWith("MARKS:")) {
+              return _buildMarksSegment(value.split(":")[1]);
+            }
+
+// Default fallback
+            return _buildNABarSegment();
+
           }),
         ],
       ),
     );
   }
+
+  Widget _buildGradeSegment(String grade) {
+    return Container(
+      width: 45,
+      height: 25,
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.purple.shade700, Colors.purple.shade300],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.purple.withOpacity(0.4),
+              blurRadius: 5,
+              offset: Offset(0, 3))
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        grade,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+
+
+  Widget _buildMarksSegment(String marks) {
+    return Container(
+      width: 45,
+      height: 25,
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade300,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(color: Colors.teal.withOpacity(0.4), blurRadius: 5, offset: Offset(0, 3))
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        marks,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+
 
 // Helper function to find the most recent valid score before the current index
   int? _getPreviousValidScore(List<String> scores, int currentIndex) {

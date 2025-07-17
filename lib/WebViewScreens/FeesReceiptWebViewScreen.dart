@@ -166,57 +166,6 @@ class _ReceiptWebViewScreenState extends State<ReceiptWebViewScreen> {
   }
 
 
-  // Future<void> _downloadFileIOS(String url) async {
-  //   setState(() {
-  //     _isDownloading = true; // Show loader
-  //   });
-  //
-  //   try {
-  //     // Get the external storage directory
-  //     final directory = await getApplicationDocumentsDirectory();
-  //
-  //
-  //     // Find the next available file number
-  //     int fileNumber = 1;
-  //     while (await File('${directory.path}/receipt_$fileNumber.pdf').exists()) {
-  //       fileNumber++;
-  //     }
-  //
-  //     var fileName = 'receipt_$fileNumber.pdf';
-  //     var path = '${directory.path}/$fileName';
-  //     var file = File(path);
-  //
-  //     try {
-  //       var res = await http.get(Uri.parse(url));
-  //       await file.writeAsBytes(res.bodyBytes);
-  //
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text(
-  //               'Find it in the Files/On My iPhone/EvolvU Smart School - Parent. $fileName'),
-  //         ),
-  //       );
-  //     } catch (e) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Failed to download file'),
-  //         ),
-  //       );
-  //     }
-  //
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text('Failed to download file'),
-  //       ),
-  //     );
-  //   } finally {
-  //     setState(() {
-  //       _isDownloading = false; // Hide loader after completion
-  //     });
-  //   }
-  // }
-
   Future<void> _downloadFileIOS(String url) async {
     setState(() {
       _isDownloading = true; // Show loader

@@ -896,7 +896,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
-      if(online_fees_payment == 1)
+      if(academicYearProvider.academic_yr == widget.academicYr && online_fees_payment == 1)
       CardItem(
         imagePath: 'assets/cashpayment.png',
         title: 'Fees Payment',
@@ -1210,25 +1210,27 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     return name; // If there's no second space, return the original name
   }
 
-Container buildMyNavBar(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
-        _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-        _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
-        _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
-      ],
+SafeArea buildMyNavBar(BuildContext context) {
+  return SafeArea(
+    child: Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+          _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
+          _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
+          _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
+        ],
+      ),
     ),
   );
 }

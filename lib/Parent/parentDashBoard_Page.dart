@@ -21,6 +21,7 @@ import '../ChangeAcademicYear.dart';
 import '../QR/QR_Code.dart';
 import '../WebViewScreens/DashboardOnlineFeesPayment.dart';
 import '../WebViewScreens/DrawerOnlineFeesPayment.dart';
+import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
 import '../main.dart';
@@ -154,7 +155,7 @@ Future<void> fetchDashboardData(String url) async {
       print('message1_url : ${data['message1_url']}');
       print('message2_url : ${data['message2_url']}');
 
-      print('Encrypted Username: $paymentUrlShare');
+      print('paymentUrlShare: $paymentUrlShare');
       print('Encrypted Username: $encryptedUsername');
 
       print('Receipt URL: $receiptUrl');
@@ -449,23 +450,25 @@ class _ParentDashBoardPageState extends State<ParentDashBoardPage> {
 
 
   Widget buildMyNavBar() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
-          _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-          _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 5), // Center icon
-          _buildNavItem(icon: Icons.person, label: 'Profile', index: 2),
-          _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
-        ],
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3))],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+            _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
+            _buildCenterNavItem(icon: Icons.currency_rupee_sharp, index: 5), // Center icon
+            _buildNavItem(icon: Icons.person, label: 'Profile', index: 2),
+            _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
+          ],
+        ),
       ),
     );
   }
@@ -650,13 +653,15 @@ class CustomPopup extends StatelessWidget {
 
       CardItem(
         imagePath: 'assets/cashpayment.png',
-        title: 'Fees Payment',
+        title: 'Fees Receipt',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DrawerOnlineFeesPayment(
-                  regId: reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr, receipt_button: receipt_button,),
+              builder: (_) => ReceiptWebViewScreen(
+                receiptUrl:
+                '${receiptUrl}?reg_id=${reg_id}&academic_yr=${academic_yr}&short_name=${shortName}',
+              ),
             ),
           );
         },

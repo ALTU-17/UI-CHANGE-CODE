@@ -249,6 +249,7 @@ class _StudentCardState extends State<StudentCard> {
     try {
       final response = await http.post(get_evolvu_updatesurl, body: body);
       print('get_evolvu_updates => ${response.statusCode}');
+      print('get_evolvu_updates body=> $url${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
@@ -1966,9 +1967,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(
-                        widget.gender == 'F'
-                            ? 'assets/girl.png'
-                            : 'assets/boy.png',
+                        widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
                       ),
                     ),
                   ],

@@ -1,0 +1,2 @@
+C:/Users/skalt/OneDrive/Desktop/flutter practice/UI-CHANGE-CODE/android/app/.cxx/RelWithDebInfo/4x4z1q6z/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/skalt/OneDrive/Desktop/flutter practice/UI-CHANGE-CODE/android/app/.cxx/RelWithDebInfo/4x4z1q6z/armeabi-v7a/CMakeFiles/rebuild_cache.dir

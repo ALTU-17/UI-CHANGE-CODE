@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
@@ -417,23 +418,23 @@ class _StudentFormState extends State<StudentForm> {
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
-    print('logUrls====\\\\: $logUrls');
+    log('logUrls====\\\\: $logUrls');
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
-        print('logUrls====\\\\11111: $logUrls');
+        log('logUrls====\\\\11111: $logUrls');
 
         academic_yrstr = logUrlsparsed['academic_yr'];
         reg_idstr = logUrlsparsed['reg_id'];
         // shortName = logUrlsparsed['short_name'];
 
-        print('academic_yr ID: $academic_yrstr');
-        print('reg_id: $reg_idstr');
+        log('academic_yr ID: $academic_yrstr');
+        log('reg_id: $reg_idstr');
       } catch (e) {
-        print('Error parsing school info: $e');
+        log('Error parsing school info: $e');
       }
     } else {
-      print('School info not found in SharedPreferences.');
+      log('School info not found in SharedPreferences.');
     }
 
     if (schoolInfoJson != null) {
@@ -448,16 +449,16 @@ class _StudentFormState extends State<StudentForm> {
         projectUrl = parsedData['project_url'];
         String defaultPassword = parsedData['default_password'];
 
-        print('Short Name: $shortName');
-        print('URL1111: $url');
-        print('Teacher APK URL: $teacherApkUrl');
-        print('Project URL: $projectUrl');
-        print('Default Password: $defaultPassword');
+        log('Short Name: $shortName');
+        log('URL1111: $url');
+        log('Teacher APK URL: $teacherApkUrl');
+        log('Project URL: $projectUrl');
+        log('Default Password: $defaultPassword');
       } catch (e) {
-        print('Error parsing school info: $e');
+        log('Error parsing school info: $e');
       }
     } else {
-      print('School info not found in SharedPreferences.');
+      log('School info not found in SharedPreferences.');
     }
 
     http.Response response = await http.post(
@@ -468,36 +469,12 @@ class _StudentFormState extends State<StudentForm> {
         'short_name': shortName
       },
     );
-
-    http.Response get_student_profile_images_details = await http.post(
-      Uri.parse(url + "get_student_profile_images_details"),
-      body: {
-        'student_id': widget.studentId,
-        'short_name': shortName
-      },
-    );
-
-    // print('get_student_profile_images_details status code: ${get_student_profile_images_details.statusCode}');
-    // print('get_student_profile_images_details Response body====:>  ${get_student_profile_images_details.body}');
-
-    if (get_student_profile_images_details.statusCode == 200) {
-      Map<String, dynamic> responseData = json.decode(get_student_profile_images_details.body);
-      imageUrl = responseData['image_url'];
-      print('Image URL: $imageUrl');
-      if (imageUrl.hashCode == 404) {
-        print('Image not found, using default image.');
-        imageUrl = ""; // or set a default image URL if available
-      } else {
-        print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
-      }
-    }
-
-    // imageUrl = "${projectUrl}uploads/student_image/$studentId.jpg";
-    print('Response status code: $imageUrl');
-    print('get_student body: ${response.body}');
+    imageUrl = "${projectUrl}uploads/student_image/$studentId.jpg";
+    log('Response status code: $imageUrl');
+    log('get_student body: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('Response 11111111111');
+      log('Response 11111111111');
       // Assuming 'response' contains the API response
       List<dynamic> apiResponse = json.decode(response.body);
 
@@ -521,7 +498,7 @@ class _StudentFormState extends State<StudentForm> {
       )
           .catchError((error) {
         // Handle if user cancels the picker
-        print("Image picker cancelled: $error");
+        log("Image picker cancelled: $error");
         return null;
       });
 
@@ -547,7 +524,7 @@ class _StudentFormState extends State<StudentForm> {
         imageUrl = newImageUrl;
       });
     } catch (e) {
-      print("Error in uploadImage: $e");
+      log("Error in uploadImage: $e");
     }
   }
 
@@ -564,13 +541,27 @@ class _StudentFormState extends State<StudentForm> {
             toolbarWidgetColor: Colors.white,
             statusBarColor: Colors.blue,
             backgroundColor: Colors.white,
+            // Add these settings for better discard handling
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
             hideBottomControls: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+            ],
           ),
           IOSUiSettings(
+            // minimumAspectRatio: 1.0,
+            // Add these settings for iOS
             cancelButtonTitle: 'Cancel',
             doneButtonTitle: 'Done',
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+            ],
           ),
         ],
       );
@@ -582,7 +573,7 @@ class _StudentFormState extends State<StudentForm> {
 
       return File(croppedFile.path);
     } catch (e) {
-      print("Error in cropImage: $e");
+      log("Error in cropImage: $e");
       return null;
     }
   }
@@ -602,9 +593,9 @@ class _StudentFormState extends State<StudentForm> {
       );
 
       if (response.statusCode == 200) {
-        print("Error uploading image: $shortName");
-        // print("Error uploading image: $base64Image");
-        print("Error uploading image: $base64Image");
+        log("Error uploading image: $shortName");
+        // log("Error uploading image: $base64Image");
+        log("Error uploading image: $base64Image");
 
         setState(() {
           imageUrl =
@@ -613,7 +604,7 @@ class _StudentFormState extends State<StudentForm> {
 
         // Assuming the server responds with a JSON containing the image URL
         var responseBody = jsonDecode(response.body);
-        print("Error uploading image: $responseBody");
+        log("Error uploading image: $responseBody");
         // Navigator.pop(context);
 
         Fluttertoast.showToast(
@@ -660,7 +651,7 @@ class _StudentFormState extends State<StudentForm> {
         throw Exception('Failed to upload image');
       }
     } catch (e) {
-      print("Error uploading image: $e");
+      log("Error uploading image: $e");
       throw Exception('Failed to upload image');
     }
   }
@@ -676,13 +667,13 @@ class _StudentFormState extends State<StudentForm> {
 
   Future<void> fetchHouseData() async {
     try {
-      print('get_house body:${widget.shortName1}');
+      log('get_house body:${widget.shortName1}');
 
       http.Response response = await http.post(
         Uri.parse("$url+get_house"),
         body: {'short_name': shortName},
       );
-      print('get_house body: ${response.body}');
+      log('get_house body: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -698,11 +689,11 @@ class _StudentFormState extends State<StudentForm> {
 
           // selectedHouseName = houses.first['house_name'];
           selectedHouseId = houses.first['house_id'];
-          print('Failed to load house data ${childInfo?.house}');
+          log('Failed to load house data ${childInfo?.house}');
 
           if (childInfo?.house == 'E') {
             selectedHouseName = 'Emerald';
-            print('Failed to load house data $selectedHouseName');
+            log('Failed to load house data $selectedHouseName');
           } else if (childInfo?.house == 'D') {
             selectedHouseName = 'Diamond';
           } else if (childInfo?.house == 'S') {
@@ -713,7 +704,7 @@ class _StudentFormState extends State<StudentForm> {
 
           if (childInfo?.transportMode == 'Bus') {
             selectedTrans = 'School Bus';
-            print('Failed to load house data $selectedTrans');
+            log('Failed to load house data $selectedTrans');
           } else if (childInfo?.transportMode == 'Van') {
             selectedTrans = 'Private Van';
           } else if (childInfo?.transportMode == 'Self') {
@@ -721,14 +712,14 @@ class _StudentFormState extends State<StudentForm> {
           }
         });
       } else {
-        print('Failed to load house data');
+        log('Failed to load house data');
       }
     } catch (e) {
-      print('Exception: $e');
+      log('Exception: $e');
     }
   }
 
-  _init() async {
+  Future<void> _init() async {
     childInfo = await _getSchoolInfo(widget.studentId);
 
     setState(() {
@@ -777,27 +768,33 @@ class _StudentFormState extends State<StudentForm> {
                           ) as ImageProvider,
                         ),
                       ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Color.fromARGB(255, 1, 24, 43)
-                                .withOpacity(0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            iconSize: 24,
-                            color: Colors.white,
-                            onPressed: () {
-                              uploadImage(ImageSource.gallery);
-                            },
-                          ),
-                        ),
-                      ),
+                      // Positioned(
+                      //   right: 0,
+                      //   bottom: 0,
+                      //   child: Container(
+                      //     width: 48,
+                      //     height: 48,
+                      //     decoration: BoxDecoration(
+                      //       color: Color.fromARGB(255, 1, 24, 43)
+                      //           .withOpacity(0.5),
+                      //       shape: BoxShape.circle,
+                      //     ),
+                          // child: IconButton(
+                          //   icon: Icon(Icons.add),
+                          //   iconSize: 24,
+                          //   color: Colors.white,
+                          //   onPressed: () {
+                          //     uploadImage(ImageSource.gallery);
+                          //   },
+                          // ),
+                          // child: IconButton(
+                          //   icon: const Icon(Icons.add),
+                          //   iconSize: 24,
+                          //   color: Colors.white,
+                          //   onPressed: null, // Disables the button
+                          // ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -887,6 +884,7 @@ class _StudentFormState extends State<StudentForm> {
                   initialValue: childInfo?.stuAadhaarNo,
                   keyboardType: TextInputType.number,
                   isRequired: true,
+                  readOnly: true,
                   onChanged: (value) {
                     setState(() {
                       childInfo?.stuAadhaarNo = value;
@@ -899,7 +897,8 @@ class _StudentFormState extends State<StudentForm> {
                 //   Text('House: ${getFullHouseName(childInfo!.house)}'),
 
                 HashLabeledDropdown(
-                  label: "Admitted In Class", // Keep the label static
+                  label: "Admitted In Class",
+                  readOnly: true,
                   options: [
                     'Nursery',
                     'LKG',
@@ -918,7 +917,6 @@ class _StudentFormState extends State<StudentForm> {
                     '12',
                     '13'
                   ],
-
                   selectedValue: getGender(childInfo!.admissionClass),
                   onChanged: (String? newValue) {
                     setState(() {
@@ -957,6 +955,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 HashLabeledDropdown(
+                  readOnly: true,
                   label: "Gender",
 
                   options: ['Male', 'Female'],
@@ -973,7 +972,9 @@ class _StudentFormState extends State<StudentForm> {
                   },
                 ),
 
-                LabeledDropdown(
+                HashLabeledDropdown(
+                  readOnly: true,
+                  isRequired: false,
                   label: "Blood Group",
                   // Static label
                   options: const [
@@ -998,7 +999,9 @@ class _StudentFormState extends State<StudentForm> {
                   },
                 ),
 
-                LabeledDropdown(
+                HashLabeledDropdown(
+                  readOnly: true,
+                  isRequired: false,
                   label: 'House', // Static label
                   options: houseNameMapping.values
                       .toList(), // List of house names
@@ -1021,6 +1024,7 @@ class _StudentFormState extends State<StudentForm> {
                   labelText: 'Nationality',
                   initialValue: childInfo?.nationality ?? '',
                   keyboardType: TextInputType.name,
+                  readOnly: true,
                   isRequired: true,
                   onChanged: (value) {
                     setState(() {
@@ -1033,6 +1037,7 @@ class _StudentFormState extends State<StudentForm> {
                   labelText: 'Address',
                   initialValue: childInfo?.permantAdd ?? '',
                   keyboardType: TextInputType.name,
+                  readOnly: true,
                   isRequired: true,
                   onChanged: (value) {
                     setState(() {
@@ -1042,6 +1047,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 StuEditTextField(
+                  readOnly: true,
                   labelText: 'City',
                   initialValue: childInfo?.city ?? '',
                   keyboardType: TextInputType.name,
@@ -1054,6 +1060,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 StuEditTextField(
+                  readOnly: true,
                   labelText: 'State',
                   initialValue: childInfo?.state ?? '',
                   keyboardType: TextInputType.name,
@@ -1066,6 +1073,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 StuEditTextField(
+                  readOnly: true,
                   labelText: 'Pincode',
                   initialValue: childInfo?.pincode ?? '',
                   keyboardType: TextInputType.number,
@@ -1077,6 +1085,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 StuEditTextField(
+                  readOnly: true,
                   labelText: 'Birth Place',
                   initialValue: childInfo?.birthPlace ?? '',
                   keyboardType: TextInputType.name,
@@ -1088,6 +1097,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
 
                 StuEditTextField(
+                  readOnly: true,
                   labelText: 'Mother Tongue',
                   initialValue: childInfo?.motherTongue ?? '',
                   keyboardType: TextInputType.name,
@@ -1238,7 +1248,7 @@ class _StudentFormState extends State<StudentForm> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    print('###### body: ${childInfo?.allergies}');
+                    log('###### body: ${childInfo?.allergies}');
 
                     String? aadharNumber = childInfo?.stuAadhaarNo;
 
@@ -1384,10 +1394,9 @@ class _StudentFormState extends State<StudentForm> {
                         },
                       );
 
-                      // print('Response body: $qrCode $academic_yr $formattedTime $formattedDate');
-                      print('Response body: ${response.body}');
-                      print(
-                          'childInfo?.stuAadhaarNo33##### body: ${childInfo?.allergies}+${childInfo?.gender}+${childInfo?.transportMode}');
+                      // log('Response body: $qrCode $academic_yr $formattedTime $formattedDate');
+                      log('Response body: ${response.body}');
+                      log('childInfo?.stuAadhaarNo33##### body: ${childInfo?.allergies}+${childInfo?.gender}+${childInfo?.transportMode}');
 
                       if (response.statusCode == 200) {
                         Fluttertoast.showToast(
@@ -1420,7 +1429,7 @@ class _StudentFormState extends State<StudentForm> {
                         );
                       }
                     } catch (e) {
-                      print('Exception: $e');
+                      log('Exception: $e');
                     }
 
                     // UpdateStudent(context,childInfo?.studentId);

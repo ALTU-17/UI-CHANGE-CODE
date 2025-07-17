@@ -51,7 +51,7 @@ class _CalendarPageState extends State<CalendarPage> {
               child: TableCalendar(
                 // firstDay: _academicYearStart ?? DateTime.utc(2020, 1, 1),
                 // lastDay: _academicYearEnd ?? DateTime.utc(2030, 12, 31),
-              firstDay: DateTime.utc(2020, 1, 1),
+                firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,

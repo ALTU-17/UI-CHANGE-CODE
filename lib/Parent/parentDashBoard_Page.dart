@@ -21,6 +21,7 @@ import '../ChangeAcademicYear.dart';
 import '../QR/QR_Code.dart';
 import '../WebViewScreens/DashboardOnlineFeesPayment.dart';
 import '../WebViewScreens/DrawerOnlineFeesPayment.dart';
+import '../WebViewScreens/FeesReceiptWebViewScreen.dart';
 import '../aboutUs.dart';
 import '../changePasswordPage.dart';
 import '../main.dart';
@@ -154,7 +155,7 @@ Future<void> fetchDashboardData(String url) async {
       print('message1_url : ${data['message1_url']}');
       print('message2_url : ${data['message2_url']}');
 
-      print('Encrypted Username: $paymentUrlShare');
+      print('paymentUrlShare: $paymentUrlShare');
       print('Encrypted Username: $encryptedUsername');
 
       print('Receipt URL: $receiptUrl');
@@ -650,13 +651,15 @@ class CustomPopup extends StatelessWidget {
 
       CardItem(
         imagePath: 'assets/cashpayment.png',
-        title: 'Fees Payment',
+        title: 'Fees Receipt',
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DrawerOnlineFeesPayment(
-                  regId: reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr, receipt_button: receipt_button,),
+              builder: (_) => ReceiptWebViewScreen(
+                receiptUrl:
+                '${receiptUrl}?reg_id=${reg_id}&academic_yr=${academic_yr}&short_name=${shortName}',
+              ),
             ),
           );
         },

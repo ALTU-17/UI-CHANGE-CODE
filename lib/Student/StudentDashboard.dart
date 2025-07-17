@@ -896,7 +896,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
-      if(online_fees_payment == 1)
+      if(academicYearProvider.academic_yr == widget.academicYr && online_fees_payment == 1)
       CardItem(
         imagePath: 'assets/cashpayment.png',
         title: 'Fees Payment',

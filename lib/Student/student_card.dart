@@ -1966,9 +1966,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(
-                        widget.gender == 'F'
-                            ? 'assets/girl.png'
-                            : 'assets/boy.png',
+                        widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
                       ),
                     ),
                   ],

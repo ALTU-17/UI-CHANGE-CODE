@@ -1,6 +1,6 @@
-// const String GET_URL = "https://api.aceventura.in/demo/evolvuURL/get_url";
+const String GET_URL = "https://api.aceventura.in/demo/evolvuURL/get_url";
 
-const String GET_URL = "https://api.aceventura.in/evolvuURL/get_url";
+// const String GET_URL = "https://api.aceventura.in/evolvuURL/get_url";
 
 
 // const String ROOT = "http://aceventura.in/evolvuUserService/validate_user";

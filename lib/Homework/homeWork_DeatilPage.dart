@@ -170,6 +170,20 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
     DateTime parsedDate1 = DateTime.parse(widget.homeworkInfo.submissionDate);
     String formatted_assignedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
     String formatted_submissionDate = DateFormat('dd-MM-yyyy').format(parsedDate1);
+    final String formattedHomework = widget.homeworkInfo.homework
+    // 1. Break BEFORE every Devanagari numbered item like १. २. ३.
+        .replaceAll(RegExp(r'(?<!^)\s*(?=[०-९]+\.)'), '\n')
+    // 2. Break AFTER "-( )" or "-(  )" patterns
+        .replaceAll(RegExp(r'-\(\s*\)\s*'), '-( )\n')
+    // 3. Break AFTER Marathi danda '।'
+        .replaceAll('।', '।\n')
+    // 4. Collapse multiple spaces
+        .replaceAll(RegExp(r'[ \t]{2,}'), ' ')
+    // 5. Remove extra blank lines
+        .replaceAll(RegExp(r'\n{2,}'), '\n')
+    // 6. Trim leading newline
+        .replaceAll(RegExp(r'^\n+'), '')
+        .trim();
     return Container(
       height: 720.h,
       margin: EdgeInsets.all(8.0),
@@ -281,9 +295,11 @@ class _HomeWorkDetailPageState extends State<HomeWorkDetailPage> {
                     ),
                   ),
                   TextSpan(
-                    text: widget.homeworkInfo.homework,
+                    text: formattedHomework,
                     style: TextStyle(
                       fontSize: 16.sp,
+                      height: 1.6,           // important for Devanagari matras
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],

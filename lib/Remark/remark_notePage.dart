@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../Teacher/textSanitizer.dart';
 import 'remark_noteCard.dart'; // Update the import path accordingly
 
 class RemarkNotePage extends StatefulWidget {
@@ -142,7 +143,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
     if (response.statusCode == 200) {
       print('Response: ${response.body}');
 
-      List jsonResponse = json.decode(response.body);
+      List jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       if (jsonResponse.isNotEmpty) {
         Ack = jsonResponse.first['acknowledge']?.toString() ?? '';
       }
@@ -218,6 +219,8 @@ class _RemarkNotePage extends State<RemarkNotePage> {
 
     @override
   Widget build(BuildContext context) {
+
+
       return WillPopScope(
         onWillPop: () async {
           // Pop until reaching the HistoryTab route
@@ -357,6 +360,8 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                         itemCount: snapshot.data!.length,
                         itemBuilder: (context, index) {
                           final remark = snapshot.data![index];
+                          String cleanedNote = remark.remarkDesc;
+                          String cleanedNote11 = TextSanitizer.cleanText(cleanedNote);
                           return Padding(
                             padding: const EdgeInsets.all(3.0),
                             child: RemarkNoteCard(
@@ -377,7 +382,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
                                         academic_yr: academic_yr,
                                         remarksubject: remark.remarkSubject,
                                         imageList: remark.imageList,
-                                        description: remark.remarkDesc,
+                                        description: cleanedNote11,
                                         remarkId: remark.remarkId,
                                         remarkDate: remark.remarkDate,
                                       ),

@@ -216,7 +216,7 @@ class _NoticeDetailPageState extends State<NoticeDetailPage> {
         const SizedBox(width: 8.0),
         Expanded(
           child: Text(
-            value,
+            value.replaceAll("Dear Parent,", "Dear Parent,\n"),
             style: const TextStyle(
               fontSize: 14,
             ),

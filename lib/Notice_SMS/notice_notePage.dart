@@ -94,7 +94,7 @@ class _NoticeNotePageState extends State<NoticeNotePage> {
     print('Filtering notices with query: ${response.body}'); // Debugging statement
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
+      List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
       return body.map((json) => Notice.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load notices');

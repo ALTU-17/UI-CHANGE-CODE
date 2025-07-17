@@ -1,2 +1,0 @@
-C:/Users/skalt/OneDrive/Desktop/flutter practice/UI-CHANGE-CODE/android/app/.cxx/Debug/5h1g3a43/armeabi-v7a/CMakeFiles/edit_cache.dir
-C:/Users/skalt/OneDrive/Desktop/flutter practice/UI-CHANGE-CODE/android/app/.cxx/Debug/5h1g3a43/armeabi-v7a/CMakeFiles/rebuild_cache.dir

@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:marquee/marquee.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -14,6 +16,7 @@ import 'dart:math' as math;
 
 import '../AcademicYearProvider.dart';
 import '../Attendance/circleAttendance.dart';
+import '../Teacher/textSanitizer.dart';
 import '../Transport/BusTraking.dart';
 import '../ExamTimeTable/examTimeTable.dart';
 import '../Transport/TransportHomeScreen.dart';
@@ -43,13 +46,87 @@ class _StudentCardState extends State<StudentCard> {
   String academicYrCard = "";
   String regId = "";
   List<Map<String, dynamic>> examData = [];
-
+  String localAndroidVersion ='';
   bool isBirthdayToday = false;
   List<String> birthdayStudentNames = [];
-
+  bool showRefreshHint = true;
   List<dynamic> newsData = [];
+  Set<int> viewedNewsIds = {}; // Track viewed news by index or unique ID
+  int unviewedCount = 0;
+
+  List<Map<String, dynamic>> upcomingEvents = [];
+  bool isUpcomingEventsLoading = false;
+
+  Future<void> loadViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = prefs.getString('viewed_news_ids') ?? '';
+    if (viewedIdsString.isNotEmpty) {
+      viewedNewsIds = viewedIdsString.split(',').map((id) => int.parse(id)).toSet();
+    }
+    calculateUnviewedCount();
+  }
+
+  Future<void> saveViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = viewedNewsIds.join(',');
+    await prefs.setString('viewed_news_ids', viewedIdsString);
+  }
+
+// Calculate unviewed count
+  void calculateUnviewedCount() {
+    int count = 0;
+    for (int i = 0; i < newsData.length; i++) {
+      // Assuming each news item has a unique 'id' field
+      // If not, you can use index or another unique identifier
+      final newsId = newsData[i]['id'] ?? i; // Use index as fallback
+      if (!viewedNewsIds.contains(newsId)) {
+        count++;
+      }
+    }
+    setState(() {
+      unviewedCount = count;
+    });
+  }
+
+  void markAllAsViewed() {
+    for (int i = 0; i < newsData.length; i++) {
+      final newsId = newsData[i]['id'] ?? i;
+      viewedNewsIds.add(newsId);
+    }
+    saveViewedNews();
+    setState(() {
+      unviewedCount = 0;
+    });
+  }
+
+  void markAsViewed(int index) {
+    final newsId = newsData[index]['id'] ?? index;
+    if (!viewedNewsIds.contains(newsId)) {
+      viewedNewsIds.add(newsId);
+      saveViewedNews();
+      calculateUnviewedCount();
+    }
+  }
+
+  Future<void> _refreshDashboard() async {
+    setState(() {
+      isLoading = true;
+      showNoDataMessage = false;
+    });
+
+    await _getSchoolInfo(context);
+
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   List<dynamic> EvolvUData = [];
   List<Map<String, dynamic>> importantLinks = [];
+  Set<int> viewedImportantLinkIds = {}; // Track viewed important links
+  int unviewedImportantLinksCount = 0;
   bool isLoading = true;
   String message1_url = "";
   String message2_url = "";
@@ -80,9 +157,7 @@ class _StudentCardState extends State<StudentCard> {
       print('Log URLs not found in SharedPreferences.');
     }
     fetchDashboardData(url);
-    getSchoolNews(url); //get_news
-    get_important_links(url);
-    getEvolvuUpdate(url); //get_evolvu_updates
+    //get_evolvu_updates
 
     try {
       final response = await http.post(
@@ -111,13 +186,23 @@ class _StudentCardState extends State<StudentCard> {
     }
   }
 
+  Future<String?> getLaravelToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_token');
+  }
+
   Future<void> _getSchoolInfo(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    localAndroidVersion = packageInfo.version;
     final academicYearProvider =
         Provider.of<AcademicYearProvider>(context, listen: false);
 
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
+
+    final token = await getLaravelToken();
+    print('token body: ${token}');
 
     if (logUrls != null) {
       try {
@@ -128,8 +213,10 @@ class _StudentCardState extends State<StudentCard> {
         print('academic_yr ID: ${academicYearProvider.academic_yr}');
         academicYr = widget.acd;
         print('academic_yr ID: $academic_yr');
+        print('laravelToken: $token');
 
         regId = logUrlsParsed['reg_id'];
+        print('REG IDDDDD=====>>>>: $regId');
 
         _fetchTodaysExams();
       } catch (e) {
@@ -152,6 +239,8 @@ class _StudentCardState extends State<StudentCard> {
     }
 
     if (url.isNotEmpty) {
+      print('url Response body: $url');
+
       try {
         http.Response response = await http.post(
           Uri.parse(url + "get_childs"),
@@ -161,17 +250,29 @@ class _StudentCardState extends State<StudentCard> {
             'short_name': shortName,
           },
         );
-        print('Response get_childs: ${response.body}');
+        print('Response get_childs Length: ${response.body.length}');
+        print('Response get_childs: "${response.body}"');
 
         AcademicResponse = response.body;
 
         if (response.statusCode == 200) {
-          if (response.body
-              .contains("Student data not found in current academic year")) {
+          if (response.body.contains(
+              "Student data not found in current academic year")) {
+
+            print("No student data found. Retrying in 2 seconds...");
+
             setState(() {
-              students = []; // Clear the students list
-              showNoDataMessage = true; // Set a flag to show the message
+              students = [];
+              showNoDataMessage = true;
             });
+
+            Future.delayed(const Duration(seconds: 1), () {
+              if (mounted) {
+                _refreshDashboard();
+              }
+            });
+
+            return;
           } else {
             List<dynamic> apiResponse = json.decode(response.body);
             setState(() {
@@ -220,9 +321,8 @@ class _StudentCardState extends State<StudentCard> {
   }
 
   Future<void> getSchoolNews(String url) async {
-    final getSchoolNewsurl = Uri.parse(
-        url + 'get_news'); // Assuming Config.newLogin is your base URL
-    final body = {'short_name': shortName}; // Add required parameters
+    final getSchoolNewsurl = Uri.parse(url + 'get_news');
+    final body = {'short_name': shortName};
     print('getSchoolNews => $getSchoolNewsurl');
 
     try {
@@ -231,14 +331,218 @@ class _StudentCardState extends State<StudentCard> {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Load viewed news before updating state
+        await loadViewedNews();
+
         setState(() {
           newsData = jsonData;
         });
+
+        // Recalculate unviewed count with new data
+        calculateUnviewedCount();
       } else {
         print('getSchoolNews Error Response: ${response.statusCode}');
       }
     } catch (e) {
       print('getSchoolNews Error: $e');
+    }
+  }
+
+  Future<void> _fetchUpcomingEvents() async {
+    if (url.isEmpty || shortName.isEmpty || academicYr.isEmpty || regId.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      isUpcomingEventsLoading = true;
+    });
+
+    try {
+      final today = DateTime.now();
+
+      // Remove time part
+      final startDate = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      );
+
+      // Next 30 days
+      final endDate = startDate.add(const Duration(days: 30));
+
+      // Find which months are required
+      final Set<String> monthsToFetch = {};
+
+      DateTime currentMonth = DateTime(
+        startDate.year,
+        startDate.month,
+        1,
+      );
+
+      while (!currentMonth.isAfter(endDate)) {
+        monthsToFetch.add(
+          '${currentMonth.year}-${currentMonth.month}',
+        );
+
+        currentMonth = DateTime(
+          currentMonth.year,
+          currentMonth.month + 1,
+          1,
+        );
+      }
+
+      List<Map<String, dynamic>> allEvents = [];
+
+      // Fetch each required month
+      for (final monthKey in monthsToFetch) {
+        final parts = monthKey.split('-');
+
+        final year = parts[0];
+        final month = parts[1];
+
+        final apiUrl = Uri.parse(
+          '$url/get_all_published_events',
+        );
+
+        final response = await http.post(
+          apiUrl,
+          body: {
+            'short_name': shortName,
+            'academic_yr': academicYr,
+            'month': month,
+            'year': year,
+            'reg_id': regId,
+          },
+        );
+
+        print(
+          'Upcoming Events API [$month/$year]: ${response.statusCode}',
+        );
+
+        if (response.statusCode != 200) {
+          print(
+            'Upcoming Events API Error: ${response.body}',
+          );
+          continue;
+        }
+
+        final data = jsonDecode(response.body);
+
+        // Events
+        final events = data['Events'] ?? [];
+
+        for (final event in events) {
+          allEvents.add({
+            'title': event['title'] ?? '',
+            'description': event['event_desc'] ?? '',
+            'start_date': event['start_date'],
+            'type': 'Event',
+            'color': const Color(0xFF6DA8D6),
+            'icon': Icons.event,
+          });
+        }
+
+        // Homework
+        final homework = data['Homework'] ?? [];
+
+        for (final event in homework) {
+          allEvents.add({
+            'title': event['title'] ?? '',
+            'description': event['event_desc'] ?? '',
+            'start_date': event['start_date'],
+            'type': 'Homework',
+            'color': const Color(0xFF90EE90),
+            'icon': Icons.assignment,
+          });
+        }
+
+        // Holidays
+        final holidays = data['Holidays'] ?? [];
+
+        for (final event in holidays) {
+          allEvents.add({
+            'title': event['title'] ?? '',
+            'description': event['event_desc'] ?? '',
+            'start_date': event['start_date'],
+            'type': 'Holiday',
+            'color': const Color(0xFFE57373),
+            'icon': Icons.beach_access,
+          });
+        }
+      }
+
+      // Filter events between today and next 30 days
+      final filteredEvents = allEvents.where((event) {
+        try {
+          final eventDate = DateFormat('dd-MM-yyyy').parse(
+            event['start_date'].toString(),
+          );
+
+          final normalizedEventDate = DateTime(
+            eventDate.year,
+            eventDate.month,
+            eventDate.day,
+          );
+
+          return !normalizedEventDate.isBefore(startDate) &&
+              !normalizedEventDate.isAfter(endDate);
+        } catch (e) {
+          print(
+            'Invalid event date: ${event['start_date']}',
+          );
+          return false;
+        }
+      }).toList();
+
+      // Sort nearest event first
+      filteredEvents.sort((a, b) {
+        final dateA = DateFormat('dd-MM-yyyy').parse(
+          a['start_date'].toString(),
+        );
+
+        final dateB = DateFormat('dd-MM-yyyy').parse(
+          b['start_date'].toString(),
+        );
+
+        return dateA.compareTo(dateB);
+      });
+
+      // Remove duplicate events if same title/date/type exists
+      final List<Map<String, dynamic>> uniqueEvents = [];
+
+      for (final event in filteredEvents) {
+        final exists = uniqueEvents.any(
+              (existing) =>
+          existing['title'] == event['title'] &&
+              existing['start_date'] == event['start_date'] &&
+              existing['type'] == event['type'],
+        );
+
+        if (!exists) {
+          uniqueEvents.add(event);
+        }
+      }
+
+      // Only show first 2 upcoming events
+      final firstTwoEvents = uniqueEvents.take(2).toList();
+
+      if (mounted) {
+        setState(() {
+          upcomingEvents = firstTwoEvents;
+          isUpcomingEventsLoading = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      print('Upcoming Events Error: $e');
+      print(stackTrace);
+
+      if (mounted) {
+        setState(() {
+          upcomingEvents = [];
+          isUpcomingEventsLoading = false;
+        });
+      }
     }
   }
 
@@ -249,6 +553,7 @@ class _StudentCardState extends State<StudentCard> {
     try {
       final response = await http.post(get_evolvu_updatesurl, body: body);
       print('get_evolvu_updates => ${response.statusCode}');
+      print('get_evolvu_updates body=> $url${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
@@ -265,24 +570,85 @@ class _StudentCardState extends State<StudentCard> {
     }
   }
 
+
+// Load viewed important links from SharedPreferences
+  Future<void> loadViewedImportantLinks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = prefs.getString('viewed_important_link_ids') ?? '';
+    if (viewedIdsString.isNotEmpty) {
+      viewedImportantLinkIds = viewedIdsString.split(',').map((id) => int.parse(id)).toSet();
+    }
+    calculateUnviewedImportantLinksCount();
+  }
+
+// Save viewed important links to SharedPreferences
+  Future<void> saveViewedImportantLinks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = viewedImportantLinkIds.join(',');
+    await prefs.setString('viewed_important_link_ids', viewedIdsString);
+  }
+
+// Calculate unviewed important links count
+  void calculateUnviewedImportantLinksCount() {
+    int count = 0;
+    for (int i = 0; i < importantLinks.length; i++) {
+      // Assuming each important link has a unique 'id' field
+      // If not, you can use index or another unique identifier
+      final linkId = importantLinks[i]['id'] ?? i;
+      if (!viewedImportantLinkIds.contains(linkId)) {
+        count++;
+      }
+    }
+    setState(() {
+      unviewedImportantLinksCount = count;
+    });
+  }
+
+// Mark all important links as viewed when opening the dialog
+  void markAllImportantLinksAsViewed() {
+    for (int i = 0; i < importantLinks.length; i++) {
+      final linkId = importantLinks[i]['id'] ?? i;
+      viewedImportantLinkIds.add(linkId);
+    }
+    saveViewedImportantLinks();
+    setState(() {
+      unviewedImportantLinksCount = 0;
+    });
+  }
+
+// Mark individual important link as viewed
+  void markImportantLinkAsViewed(int index) {
+    final linkId = importantLinks[index]['id'] ?? index;
+    if (!viewedImportantLinkIds.contains(linkId)) {
+      viewedImportantLinkIds.add(linkId);
+      saveViewedImportantLinks();
+      calculateUnviewedImportantLinksCount();
+    }
+  }
+
+// Update your get_important_links method
   Future<void> get_important_links(String url) async {
-    final importantLinksUrl = Uri.parse(url +
-        'get_important_links'); // Assuming Config.newLogin is your base URL
+    final importantLinksUrl = Uri.parse(url + 'get_important_links');
     final body = {
       'short_name': shortName,
       'type_link': 'private'
-    }; // Add required parameters
-    // print('getSchoolNews => $getSchoolNewsurl');
+    };
 
     try {
       final response = await http.post(importantLinksUrl, body: body);
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Load viewed important links before updating state
+        await loadViewedImportantLinks();
+
         setState(() {
-          importantLinks =
-              jsonData.map((data) => data as Map<String, dynamic>).toList();
+          importantLinks = jsonData.map((data) => data as Map<String, dynamic>).toList();
           isLoading = false;
         });
+
+        // Recalculate unviewed count with new data
+        calculateUnviewedImportantLinksCount();
       } else {
         print('Error: ${response.statusCode}');
         setState(() {
@@ -297,14 +663,35 @@ class _StudentCardState extends State<StudentCard> {
     }
   }
 
+
+
+// Optional: Add method to reset important links viewed status (for testing)
+  Future<void> resetViewedImportantLinks() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('viewed_important_link_ids');
+    viewedImportantLinkIds.clear();
+    calculateUnviewedImportantLinksCount();
+  }
+
   @override
   void initState() {
     super.initState();
+
     _getSchoolInfo(context);
+
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          showRefreshHint = false;
+        });
+      }
+    });
   }
 
   Future<void> fetchDashboardData(String url) async {
+
     final url1 = Uri.parse(url + 'show_icons_parentdashboard_apk');
+
     // print('Receipt URL: $shortName');
 
     try {
@@ -325,6 +712,7 @@ class _StudentCardState extends State<StudentCard> {
         receiptUrl = data['receipt_url'] ?? '';
         paymentUrl = data['payment_url'] ?? '';
         smartchat_url = data['smartchat_url'] ?? '';
+        academic_yrShow = data['academic_yr'] ?? '';
 
         String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
 
@@ -342,6 +730,11 @@ class _StudentCardState extends State<StudentCard> {
           PostMsg2();
         }
 
+        getSchoolNews(url); //get_news
+        get_important_links(url);
+        getEvolvuUpdate(url);
+        _fetchUpcomingEvents();
+
         String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
         username = username;
 
@@ -353,7 +746,7 @@ class _StudentCardState extends State<StudentCard> {
             "?reg_id=" +
             reg_id +
             "&academic_yr=" +
-            academic_yr +
+            academic_yrShow +
             "&user_id=" +
             URi_username +
             "&encryptedUsername=" +
@@ -464,96 +857,147 @@ class _StudentCardState extends State<StudentCard> {
               Center(child: CircularProgressIndicator())
             else if (students.isEmpty || showNoDataMessage == true )
               Center(
-                child: Card(
-                  color: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: SizedBox(
-                      // Use SizedBox for Marquee
-                      height: 25, // Set a fixed height for the Marquee
-                      child: Marquee(
-                        text: "Student data not found in current academic year",
-                        style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
-                        scrollAxis: Axis.horizontal,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        blankSpace: 20.0,
-                        velocity: 100.0,
-                        // Adjust scrolling speed
-                        pauseAfterRound: const Duration(seconds: 2),
-                        // Adjust pause duration
-                        startPadding: 20.0,
-                        // Adjust start padding
-                        accelerationDuration: const Duration(seconds: 2),
-                        // Adjust acceleration duration
-                        accelerationCurve: Curves.linear,
-                        // Adjust acceleration curve
-                        decelerationDuration: const Duration(milliseconds: 900),
-                        // Adjust deceleration duration
-                        decelerationCurve:
-                            Curves.easeOut, // Adjust deceleration curve
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Card(
+                      color: Colors.red,
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          "Student data not found in current academic year",
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
-                  ),
+                    SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _refreshDashboard,
+                      icon: Icon(Icons.refresh),
+                      label: Text("Retry"),
+                    ),
+                  ],
                 ),
               )
             else
-              ListView(
-                children: [
-                  if (showNoDataMessage == true || academicYrCard != widget.acd) academicCard(),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    // Important to wrap the builder within the ListView
-                    physics: NeverScrollableScrollPhysics(),
-                    // Prevent nested scrolling
-                    itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      return StudentCardItem(
-                        firstName: students[index]['first_name'] ?? '',
-                        midName: students[index]['mid_name'] ?? '',
-                        lastName: students[index]['last_name'] ?? '',
-                        rollNo: students[index]['roll_no'] ?? '',
-                        className: (students[index]['class_name'] ?? '') +
-                            (students[index]['section_name'] ?? ''),
-                        cname: (students[index]['class_name'] ?? ''),
-                        secname: (students[index]['section_name'] ?? ''),
-                        classTeacher: students[index]['class_teacher'] ?? '',
-                        gender: students[index]['gender'] ?? '',
-                        studentId: students[index]['student_id'] ?? '',
-                        classId: students[index]['class_id'] ?? '',
-                        secId: students[index]['section_id'] ?? '',
-                        shortName: shortName,
-                        url: url,
-                        academicYr: academicYearProvider.academic_yr,
-                        onTap: widget.onTap,
-                      );
-                    },
-                  ),
+              RefreshIndicator(
+                onRefresh: _refreshDashboard,
+                child: ListView(
+                  children: [
 
-                  if (isBirthdayToday && birthdayStudentNames.isNotEmpty)
-                    BirthDayCard(),
-                  // Show the Birthday Card if today is someone's birthday
-                  _buildMessageCard(_message),
-                  _buildMessageCard2(_message2),
-                  // Display the exam card once for all students
-                  _buildExamCard(),
+                    if (androidVersion.isNotEmpty &&
+                        localAndroidVersion.isNotEmpty &&
+                        _isVersionGreater(androidVersion, localAndroidVersion))
+                    Center(
+                      child: InkWell(
+                        onTap: () {
+                          // Open the URL when tapped
+                          _launchURL();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8.0,8,8,0),
+                          child: Card(
+                            color: Colors.yellow.shade600,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.crisis_alert),
+                                  SizedBox(width: 10,),
+                                  Text("You have newer version of the app to \n Download. ",),
+                                  SizedBox(width: 10,),
+                                  Icon(Icons.touch_app_outlined),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
-                  SizedBox(height: 4),
+                    if (showRefreshHint)
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Center(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.swipe_down, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Pull down to refresh dashboard data",
+                                  style: TextStyle(
+                                    color: Colors.blue.shade800,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
-                  if (newsData.isNotEmpty) _buildNewsletterWidget(),
+                    if (showNoDataMessage == true || academic_yrShow != widget.acd) academicCard(),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      // Important to wrap the builder within the ListView
+                      physics: NeverScrollableScrollPhysics(),
+                      // Prevent nested scrolling
+                      itemCount: students.length,
+                      itemBuilder: (context, index) {
+                        return StudentCardItem(
+                          firstName: students[index]['first_name'] ?? '',
+                          midName: students[index]['mid_name'] ?? '',
+                          lastName: students[index]['last_name'] ?? '',
+                          rollNo: students[index]['roll_no'] ?? '',
+                          className: (students[index]['class_name'] ?? '') +
+                              (students[index]['section_name'] ?? ''),
+                          cname: (students[index]['class_name'] ?? ''),
+                          secname: (students[index]['section_name'] ?? ''),
+                          classTeacher: students[index]['class_teacher'] ?? '',
+                          gender: students[index]['gender'] ?? '',
+                          studentId: students[index]['student_id'] ?? '',
+                          classId: students[index]['class_id'] ?? '',
+                          secId: students[index]['section_id'] ?? '',
+                          shortName: shortName,
+                          url: url,
+                          academicYr: academicYearProvider.academic_yr,
+                          onTap: widget.onTap,
+                        );
+                      },
+                    ),
 
-                  SizedBox(height: 4),
-                  if (importantLinks.isNotEmpty) _buildImportantLinksWidget(),
+                    if (isBirthdayToday && birthdayStudentNames.isNotEmpty)
+                      BirthDayCard(),
+                    // Show the Birthday Card if today is someone's birthday
+                    _buildMessageCard(_message),
+                    _buildMessageCard2(_message2),
 
-                  SizedBox(height: 4),
-                  if (EvolvUData.isNotEmpty) _buildEvolvuUpdatesWidget(),
-                ],
+                    _buildExamCard(),
+
+                    _buildUpcomingEventsCard(),
+
+                    // SizedBox(height: 4),
+
+                    if (newsData.isNotEmpty)
+                      _buildNewsletterWidget(),
+                    SizedBox(height: 4),
+                    if (importantLinks.isNotEmpty) _buildImportantLinksWidget(),
+
+                    SizedBox(height: 4),
+                    if (EvolvUData.isNotEmpty) _buildEvolvuUpdatesWidget(),
+                  ],
+                ),
               ),
           ],
         ),
@@ -579,6 +1023,65 @@ class _StudentCardState extends State<StudentCard> {
           // )
       ),
     );
+  }
+  _launchURL() async {
+    const url = 'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool';
+
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  bool _isVersionGreater(String? newVersion, String? currentVersion) {
+    try {
+      // Handle null or empty values
+      if (newVersion == null ||
+          currentVersion == null ||
+          newVersion.trim().isEmpty ||
+          currentVersion.trim().isEmpty) {
+        print("Version compare skipped: Empty version");
+        return false;
+      }
+
+      print("newVersion => '$newVersion'");
+      print("currentVersion => '$currentVersion'");
+
+      List<int> newParts = newVersion
+          .trim()
+          .split('.')
+          .map((e) => int.tryParse(e.trim()) ?? 0)
+          .toList();
+
+      List<int> currentParts = currentVersion
+          .trim()
+          .split('.')
+          .map((e) => int.tryParse(e.trim()) ?? 0)
+          .toList();
+
+      int maxLength =
+      newParts.length > currentParts.length
+          ? newParts.length
+          : currentParts.length;
+
+      for (int i = 0; i < maxLength; i++) {
+        int newPart = i < newParts.length ? newParts[i] : 0;
+        int currentPart = i < currentParts.length ? currentParts[i] : 0;
+
+        if (newPart > currentPart) {
+          return true;
+        } else if (newPart < currentPart) {
+          return false;
+        }
+      }
+
+      return false;
+    } catch (e, stackTrace) {
+      print("Version comparison error: $e");
+      print(stackTrace);
+      return false;
+    }
   }
 
   Widget _buildMessageCard(String message) {
@@ -960,71 +1463,107 @@ class _StudentCardState extends State<StudentCard> {
     return isLoading
         ? Center(child: CircularProgressIndicator())
         : Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0),
-            child: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Center(
-                        child: Text(
-                          'Important Links',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      child: GestureDetector(
+        onTap: () {
+          // Mark all important links as viewed when opening the dialog
+          markAllImportantLinksAsViewed();
+
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Center(
+                  child: Text(
+                    'Important Links',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                content: SizedBox(
+                  height: 200,
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: importantLinks.length,
+                    itemBuilder: (context, index) {
+                      final link = importantLinks[index];
+                      return GestureDetector(
+                        onTap: () {
+                          // Mark this specific important link as viewed
+                          markImportantLinkAsViewed(index);
+                          _showDetailedLinkDialog(link);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 15.0),
+                          child: _buildLinkPreviewCard(
+                            title: link['title'] ?? 'No Title',
+                            description: link['description'] ?? 'No Description',
+                            date: DateFormat('dd-MM-yy').format(
+                                DateTime.parse(link['create_date'] ?? 'No Date')),
+                            url: link['url'] ?? '',
+                            type: link['type_link'] ?? 'Unknown',
                           ),
                         ),
-                      ),
-                      content: SizedBox(
-                        height: 200,
-                        width: double.maxFinite,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: importantLinks.length,
-                          itemBuilder: (context, index) {
-                            final link = importantLinks[index];
-                            return GestureDetector(
-                              onTap: () {
-                                _showDetailedLinkDialog(link);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 15.0),
-                                child: _buildLinkPreviewCard(
-                                  title: link['title'] ?? 'No Title',
-                                  description:
-                                      link['description'] ?? 'No Description',
-                                  date: DateFormat('dd-MM-yy').format(
-                                      DateTime.parse(
-                                          link['create_date'] ?? 'No Date')),
-                                  url: link['url'] ?? '',
-                                  type: link['type_link'] ?? 'Unknown',
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: _buildInteractiveCard(
-                Icons.link,
-                'Important Links',
-                Colors.blue,
-              ),
-            ),
+                      );
+                    },
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Close'),
+                  ),
+                ],
+              );
+            },
           );
+        },
+        child: Stack(
+          children: [
+            _buildInteractiveCard(
+              Icons.link,
+              'Important Links',
+              Colors.blue,
+            ),
+            // Add badge for unviewed important links count
+            if (unviewedImportantLinksCount > 0)
+              Positioned(
+                top: 15,
+                right: 15,
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: 25,
+                    minHeight: 25,
+                  ),
+                  child: Center(
+                    child: Text(
+                      unviewedImportantLinksCount > 99
+                          ? '99+'
+                          : unviewedImportantLinksCount.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildLinkPreviewCard({
@@ -1177,19 +1716,23 @@ class _StudentCardState extends State<StudentCard> {
         children: [
           GestureDetector(
             onTap: () {
+              // Mark all as viewed when opening the dialog
+              markAllAsViewed();
+
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
                     title: Center(
-                        child: Text(
-                      'Newsletter',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                      child: Text(
+                        'Newsletter',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                    )),
+                    ),
                     content: SizedBox(
                       height: 200,
                       width: double.maxFinite,
@@ -1199,6 +1742,8 @@ class _StudentCardState extends State<StudentCard> {
                           children: List.generate(newsData.length, (index) {
                             return GestureDetector(
                               onTap: () {
+                                // Mark this specific news as viewed
+                                markAsViewed(index);
                                 _showDetailedNewsDialog(index);
                               },
                               child: Padding(
@@ -1222,10 +1767,41 @@ class _StudentCardState extends State<StudentCard> {
                 },
               );
             },
-            child: _buildInteractiveCard(
-              Icons.email,
-              'Open Newsletter',
-              Colors.red,
+            child: Stack(
+              children: [
+                _buildInteractiveCard(
+                  Icons.email,
+                  'Open Newsletter',
+                  Colors.red,
+                ),
+                // Add badge for unviewed count
+                if (unviewedCount > 0)
+                  Positioned(
+                    top: 17,
+                    right: 15,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 25,
+                        minHeight: 25,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unviewedCount > 99 ? '99+' : unviewedCount.toString(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -1233,8 +1809,19 @@ class _StudentCardState extends State<StudentCard> {
     );
   }
 
+// Optional: Add method to reset viewed status (for testing)
+  Future<void> resetViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('viewed_news_ids');
+    viewedNewsIds.clear();
+    calculateUnviewedCount();
+  }
+
   Widget _buildNewsPreviewCard(int index) {
     final newsItem = newsData[index];
+    String rawDescription = newsItem['description'] ?? '';
+    String cleanedDescription = TextSanitizer.cleanText(rawDescription);
+
     return SizedBox(
       // Wrap with SizedBox
       width: 250,
@@ -1271,7 +1858,7 @@ class _StudentCardState extends State<StudentCard> {
               ),
               SizedBox(height: 10),
               Text(
-                newsItem['description'] ?? 'No Description',
+                cleanedDescription,
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.black54,
@@ -1293,6 +1880,8 @@ class _StudentCardState extends State<StudentCard> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        String rawDescription = newsItem['description'] ?? '';
+        String cleanedDescription = TextSanitizer.cleanText(rawDescription);
         return AlertDialog(
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1356,7 +1945,7 @@ class _StudentCardState extends State<StudentCard> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Text(
-                          newsItem['description'] ?? 'No Description',
+                          cleanedDescription,
                           style: TextStyle(color: Colors.black54),
                         ),
                       ),
@@ -1810,6 +2399,458 @@ class _StudentCardState extends State<StudentCard> {
     );
   }
 
+  Widget _buildUpcomingEventsCard() {
+    if (isUpcomingEventsLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(10),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (upcomingEvents.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row(
+          //   children: [
+          //     Icon(
+          //       Icons.event_available,
+          //       color: Colors.deepPurple,
+          //       size: 22,
+          //     ),
+          //     const SizedBox(width: 6),
+          //     const Text(
+          //       'Upcoming Events',
+          //       style: TextStyle(
+          //         fontSize: 20,
+          //         fontWeight: FontWeight.bold,
+          //         color: Colors.black,
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          //
+          const SizedBox(height: 2),
+
+          ...upcomingEvents.map(
+                (event) => _buildUpcomingEventItem(event),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingEventItem(Map<String, dynamic> event) {
+    final DateTime eventDate = DateFormat(
+      'dd-MM-yyyy',
+    ).parse(event['start_date'].toString());
+
+    final String title =
+        event['title']?.toString() ?? 'No Title';
+
+    final String type =
+        event['type']?.toString() ?? 'Event';
+
+    final Color color =
+        event['color'] as Color? ?? Colors.blue;
+
+    final IconData icon =
+        event['icon'] as IconData? ?? Icons.event;
+
+    final DateTime today = DateTime.now();
+
+    final DateTime normalizedToday = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    );
+
+    final DateTime normalizedEventDate = DateTime(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day,
+    );
+
+    final int daysDifference =
+        normalizedEventDate.difference(normalizedToday).inDays;
+
+    String dateText;
+
+    if (daysDifference == 0) {
+      dateText = 'Today';
+    } else if (daysDifference == 1) {
+      dateText = 'Tomorrow';
+    } else {
+      dateText = DateFormat(
+        'dd MMM yyyy',
+      ).format(eventDate);
+    }
+
+    return InkWell(
+      onTap: () {
+        _showEventDetails(event);
+      },
+      child: Card(
+        margin: const EdgeInsets.only(
+          bottom: 8,
+        ),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border(
+              left: BorderSide(
+                color: color,
+                width: 6,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 5,
+              vertical: 10,
+            ),
+            child: Row(
+              children: [
+                // Date box
+                // Container(
+                //   width: 45,
+                //   height: 58,
+                //   decoration: BoxDecoration(
+                //     color: color.withOpacity(0.20),
+                //     borderRadius: BorderRadius.circular(10),
+                //   ),
+                //   child: Column(
+                //     mainAxisAlignment:
+                //     MainAxisAlignment.center,
+                //     children: [
+                //       Text(
+                //         DateFormat(
+                //           'dd',
+                //         ).format(eventDate),
+                //         style: const TextStyle(
+                //           fontSize: 20,
+                //           fontWeight: FontWeight.bold,
+                //         ),
+                //       ),
+                //       Text(
+                //         DateFormat(
+                //           'MMM',
+                //         ).format(eventDate),
+                //         style: const TextStyle(
+                //           fontSize: 12,
+                //           fontWeight: FontWeight.w500,
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
+                //
+                const SizedBox(width: 8),
+      
+                // Event information
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow:
+                        TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+      
+                      const SizedBox(height: 5),
+      
+                      Row(
+                        children: [
+                          Icon(
+                            icon,
+                            size: 15,
+                            color: color,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            type,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              fontWeight:
+                              FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+      
+                      const SizedBox(height: 3),
+      
+                      Text(
+                        dateText,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+      
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEventDetails(Map<String, dynamic> event) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        final String title = event['title']?.toString() ?? 'Event';
+        final String description =
+            event['description']?.toString() ?? '';
+        final String date =
+            event['start_date']?.toString() ?? '';
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 420,
+              maxHeight: 600,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ================= HEADER =================
+                  Row(
+                    children: [
+                      Container(
+                        height: 46,
+                        width: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.event_rounded,
+                          color: Colors.blue,
+                          size: 25,
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ================= DATE =================
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 19,
+                          color: Colors.grey.shade700,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // ================= TITLE =================
+                  const Text(
+                    'Event Information',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // ================= RICH TEXT =================
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: description.trim().isNotEmpty
+                          ? Html(
+                        data: description,
+                        style: {
+                          "body": Style(
+                            margin: Margins.zero,
+                            padding: HtmlPaddings.zero,
+                            fontSize: FontSize(14),
+                            color: Colors.grey.shade700,
+                            lineHeight: const LineHeight(1.5),
+                          ),
+
+                          "p": Style(
+                            margin: Margins.only(bottom: 10),
+                          ),
+
+                          "strong": Style(
+                            fontWeight: FontWeight.w700,
+                          ),
+
+                          "b": Style(
+                            fontWeight: FontWeight.w700,
+                          ),
+
+                          "h1": Style(
+                            fontSize: FontSize(20),
+                            fontWeight: FontWeight.w700,
+                            margin: Margins.only(bottom: 8),
+                          ),
+
+                          "h2": Style(
+                            fontSize: FontSize(18),
+                            fontWeight: FontWeight.w700,
+                            margin: Margins.only(bottom: 8),
+                          ),
+
+                          "h3": Style(
+                            fontSize: FontSize(16),
+                            fontWeight: FontWeight.w700,
+                            margin: Margins.only(bottom: 8),
+                          ),
+
+                          "ul": Style(
+                            margin: Margins.only(left: 10),
+                          ),
+
+                          "ol": Style(
+                            margin: Margins.only(left: 10),
+                          ),
+
+                          "li": Style(
+                            margin: Margins.only(bottom: 5),
+                          ),
+
+                          "a": Style(
+                            color: Colors.blue,
+                            textDecoration:
+                            TextDecoration.underline,
+                          ),
+                        },
+                      )
+                          : Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'No additional information available.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // ================= CLOSE BUTTON =================
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 // Helper method to check if two DateTime objects represent the same calendar day
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
@@ -1911,9 +2952,11 @@ class _StudentCardItemState extends State<StudentCardItem> {
               reg_id: reg_id,
               shortName: widget.shortName,
               studentId: widget.studentId,
-              academicYr: academic_yr,
+              academicYr: widget.academicYr,
+              academic_yrShow: academic_yrShow,
               url: widget.url,
               firstName: widget.firstName,
+              fullName: widget.firstName+ ' '+widget.midName+' '+widget.lastName,
               rollNo: widget.rollNo,
               className: widget.className,
               cname: widget.cname,
@@ -1966,9 +3009,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(
-                        widget.gender == 'F'
-                            ? 'assets/girl.png'
-                            : 'assets/boy.png',
+                        widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
                       ),
                     ),
                   ],
@@ -2027,11 +3068,15 @@ class _StudentCardItemState extends State<StudentCardItem> {
                         children: [
                           Icon(Icons.class_, color: Colors.blue, size: 14.sp),
                           SizedBox(width: 5.w),
-                          Text(
-                            'Class: ${widget.className}',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[700],
+                          Expanded(
+                            child: Text(
+                              'Class: ${_formatClassName(widget.className)}',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey[700],
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -2071,7 +3116,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
                                     0, // Default to 0 if data is not available
                               ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: 0.h),
                       if (attendance.isNotEmpty)
                         Text(
                           '$attendance%',
@@ -2098,7 +3143,24 @@ class _StudentCardItemState extends State<StudentCardItem> {
       ),
     );
   }
+  String _formatClassName(String className) {
+    if (className.length <= 5) {
+      return className;
+    }
 
+    // Split by spaces
+    final words = className.split(' ');
+
+    if (words.length <= 4) {
+      return className;
+    }
+
+    // Take first two words and add newline
+    final firstTwoWords = words.take(2).join(' ');
+    final remainingWords = words.skip(2).join(' ');
+
+    return '$firstTwoWords\n$remainingWords';
+  }
   // Method to determine color based on percentage
   Color _getColor() {
     final double percentage = attendance as double;

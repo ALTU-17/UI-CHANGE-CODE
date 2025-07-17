@@ -1,8 +1,8 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:evolvu/common/Common_dropDownFiled.dart';
-import 'package:evolvu/common/common_textFiled.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:evolvu/common/textFiledStu.dart';
 import 'package:flutter/material.dart';
@@ -10,18 +10,15 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
-import 'package:http/http.dart';
-import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../common/StuEditTextField.dart';
-import '../main.dart';
 import 'package:http/http.dart' as http;
 
 TextEditingController _dobController = TextEditingController();
 bool _isClickable =
-    true; // This variable controls if the radio is clickable or not
+true; // This variable controls if the radio is clickable or not
 
 class ParentDet {
   String? parentId;
@@ -49,27 +46,27 @@ class ParentDet {
 
   ParentDet(
       {this.parentId,
-      this.fatherName,
-      this.fatherOccupation,
-      this.fOfficeAdd,
-      this.fOfficeTel,
-      this.fMobile,
-      this.fEmail,
-      this.motherOccupation,
-      this.mOfficeAdd,
-      this.mOfficeTel,
-      this.motherName,
-      this.mMobile,
-      this.mEmailid,
-      this.parentAdharNo,
-      this.mAdharNo,
-      this.fDob,
-      this.mDob,
-      this.fBloodGroup,
-      this.mBloodGroup,
-      this.isDelete,
-      this.fatherImageName,
-      this.motherImageName});
+        this.fatherName,
+        this.fatherOccupation,
+        this.fOfficeAdd,
+        this.fOfficeTel,
+        this.fMobile,
+        this.fEmail,
+        this.motherOccupation,
+        this.mOfficeAdd,
+        this.mOfficeTel,
+        this.motherName,
+        this.mMobile,
+        this.mEmailid,
+        this.parentAdharNo,
+        this.mAdharNo,
+        this.fDob,
+        this.mDob,
+        this.fBloodGroup,
+        this.mBloodGroup,
+        this.isDelete,
+        this.fatherImageName,
+        this.motherImageName});
 
   ParentDet.fromJson(Map<String, dynamic> json) {
     parentId = json['parent_id'];
@@ -97,34 +94,36 @@ class ParentDet {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['parent_id'] = this.parentId;
-    data['father_name'] = this.fatherName;
-    data['father_occupation'] = this.fatherOccupation;
-    data['f_office_add'] = this.fOfficeAdd;
-    data['f_office_tel'] = this.fOfficeTel;
-    data['f_mobile'] = this.fMobile;
-    data['f_email'] = this.fEmail;
-    data['mother_occupation'] = this.motherOccupation;
-    data['m_office_add'] = this.mOfficeAdd;
-    data['m_office_tel'] = this.mOfficeTel;
-    data['mother_name'] = this.motherName;
-    data['m_mobile'] = this.mMobile;
-    data['m_emailid'] = this.mEmailid;
-    data['parent_adhar_no'] = this.parentAdharNo;
-    data['m_adhar_no'] = this.mAdharNo;
-    data['f_dob'] = this.fDob;
-    data['m_dob'] = this.mDob;
-    data['f_blood_group'] = this.fBloodGroup;
-    data['m_blood_group'] = this.mBloodGroup;
-    data['IsDelete'] = this.isDelete;
-    data['father_image_name'] = this.fatherImageName;
-    data['mother_image_name'] = this.motherImageName;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['parent_id'] = parentId;
+    data['father_name'] = fatherName;
+    data['father_occupation'] = fatherOccupation;
+    data['f_office_add'] = fOfficeAdd;
+    data['f_office_tel'] = fOfficeTel;
+    data['f_mobile'] = fMobile;
+    data['f_email'] = fEmail;
+    data['mother_occupation'] = motherOccupation;
+    data['m_office_add'] = mOfficeAdd;
+    data['m_office_tel'] = mOfficeTel;
+    data['mother_name'] = motherName;
+    data['m_mobile'] = mMobile;
+    data['m_emailid'] = mEmailid;
+    data['parent_adhar_no'] = parentAdharNo;
+    data['m_adhar_no'] = mAdharNo;
+    data['f_dob'] = fDob;
+    data['m_dob'] = mDob;
+    data['f_blood_group'] = fBloodGroup;
+    data['m_blood_group'] = mBloodGroup;
+    data['IsDelete'] = isDelete;
+    data['father_image_name'] = fatherImageName;
+    data['mother_image_name'] = motherImageName;
     return data;
   }
 }
 
 class DrawerParentProfilePage extends StatefulWidget {
+  const DrawerParentProfilePage({super.key});
+
   @override
   _DrawerParentProfilePage createState() => _DrawerParentProfilePage();
 }
@@ -139,29 +138,30 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
   bool isLoading = true; // Add a loading state
   String? f_selectedOption; // State variable to keep track of selected option
   String? m_selectedOption; // State variable to keep track of selected option
-  bool _radioEnabled = true; // State variable to control radio button interactivity
-  String? selectedSmsRecipientFather; // Tracks the currently selected parent (Father/Mother)
-  String? selectedSmsRecipient; // Tracks the currently selected parent (Father/Mother)
-
+  final bool _radioEnabled =
+  true; // State variable to control radio button interactivity
+  String?
+  selectedSmsRecipientFather; // Tracks the currently selected parent (Father/Mother)
+  String?
+  selectedSmsRecipient; // Tracks the currently selected parent (Father/Mother)
 
   Future<void> _getSchoolInfo() async {
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
-    print('logUrls====\\\\\: $logUrls');
+    log('logUrls====\\\\: $logUrls');
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
-        print('logUrls====\\\\\11111: $logUrls');
+        log('logUrls====\\\\11111: $logUrls');
 
         academic_yrstr = logUrlsparsed['academic_yr'];
         reg_idstr = logUrlsparsed['reg_id'];
-
       } catch (e) {
-        print('Error parsing school info: $e');
+        log('Error parsing school info: $e');
       }
     } else {
-      print('School info not found in SharedPreferences.');
+      log('School info not found in SharedPreferences.');
     }
 
     if (schoolInfoJson != null) {
@@ -174,28 +174,25 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
         url = parsedData['url'];
         String teacherApkUrl = parsedData['teacherapk_url'];
         projectUrl = parsedData['project_url'];
-
-
-
       } catch (e) {
-        print('Error parsing school info: $e');
+        log('Error parsing school info: $e');
       }
     } else {
-      print('School info not found in SharedPreferences.');
+      log('School info not found in SharedPreferences.');
     }
 
     Response response = await post(
-      Uri.parse(url + "get_parent"),
+      Uri.parse("${url}get_parent"),
       body: {
         'reg_id': reg_idstr,
         // 'academic_yr': academic_yrstr,
         'short_name': shortName
       },
     );
-    print('ParentResponse status code: ${response.statusCode}');
-    print('ParentResponse body: ${response.body}');
+    log('ParentResponse status code: ${response.statusCode}');
+    log('ParentResponse body: ${response.body}');
     if (response.statusCode == 200) {
-      print('Response ````````11111111111````````');
+      log('Response ```````11111111111```````');
 
       // Assuming 'response' contains the API response
       List<dynamic> ParentResponse = json.decode(response.body);
@@ -213,15 +210,15 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
         // );
       });
 
-      print('ParentDetmod  Name222222: ${ParentDetmod?.mDob}');
+      log('ParentDetmod  Name222222: ${ParentDetmod?.mDob}');
     }
   }
 
-
-  TextEditingController _dobController = TextEditingController();
-  bool _isClickable = true; // This variable controls if the radio is clickable or not
+  final TextEditingController _dobController = TextEditingController();
+  final bool _isClickable =
+  true; // This variable controls if the radio is clickable or not
   TextEditingController _fatherDobController = TextEditingController();
-  TextEditingController _motherDobController = TextEditingController()  ;
+  TextEditingController _motherDobController = TextEditingController();
 
   void _initializeDateControllers() {
     // Format the initial date for display (dd-MM-yyyy)
@@ -245,15 +242,15 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
       return DateFormat('dd-MM-yyyy').format(date);
     } catch (e) {
       // Handle parsing errors (e.g., invalid date format)
-      print('Error parsing date: $e');
+      log('Error parsing date: $e');
       return ''; // Return an empty string or a default value
     }
   }
 
-
-
-  Future<void> updateContactDetails(String mobileNumber, String shortname,String val) async {
-    final urll = Uri.parse(url+'update_ContactDetails'); // Replace with your API URL
+  Future<void> updateContactDetails(
+      String mobileNumber, String shortname, String val) async {
+    final urll =
+    Uri.parse('${url}update_ContactDetails'); // Replace with your API URL
     final response = await http.post(
       urll,
       body: {
@@ -264,9 +261,9 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
     );
 
     if (response.statusCode == 200) {
-      print('Contact details updated successfully: ${response.body}');
+      log('Contact details updated successfully: ${response.body}');
 
-      if(val == 'Father'){
+      if (val == 'Father') {
         Fluttertoast.showToast(
           msg: "Father Mobile no. Selected",
           toastLength: Toast.LENGTH_SHORT,
@@ -287,9 +284,8 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
           fontSize: 16.0,
         );
       }
-
     } else {
-      print('Failed to update contact details: ${response.body}');
+      log('Failed to update contact details: ${response.body}');
     }
   }
 
@@ -299,7 +295,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
   Future<void> fetchActivePhoneNumber() async {
     try {
       final response = await http.post(
-        Uri.parse(url + 'get_active_phone_no'),
+        Uri.parse('${url}get_active_phone_no'),
         body: {
           'reg_id': reg_id,
           'short_name': shortName,
@@ -307,12 +303,14 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> result = jsonDecode(response.body); // Decode as a list
-        print('get_active_phone_no response: ${response.body}');
+        final List<dynamic> result =
+        jsonDecode(response.body); // Decode as a list
+        log('get_active_phone_no response: ${response.body}');
 
         if (result.isNotEmpty && result[0] is Map<String, dynamic>) {
-          final activePhoneNumber = result[0]['active_phone_no']?.toString()?.trim() ?? '';
-          print('Active Phone Number: $activePhoneNumber');
+          final activePhoneNumber =
+              result[0]['active_phone_no']?.toString().trim() ?? '';
+          log('Active Phone Number: $activePhoneNumber');
 
           if (activePhoneNumber.isNotEmpty) {
             setState(() {
@@ -322,31 +320,28 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
               } else if (activePhoneNumber == ParentDetmod?.mMobile?.trim()) {
                 selectedSmsRecipient = 'Mother';
               } else {
-                print('No matching phone number found.');
+                log('No matching phone number found.');
                 selectedSmsRecipient = null; // Reset if no match is found
               }
             });
           }
         } else {
-          print('Invalid response structure.');
+          log('Invalid response structure.');
         }
       } else {
-        print('Failed to fetch active phone number. Status code: ${response.statusCode}');
+        log('Failed to fetch active phone number. Status code: ${response.statusCode}');
       }
     } catch (error) {
-      print('Error in fetchActivePhoneNumber: $error');
+      log('Error in fetchActivePhoneNumber: $error');
     }
   }
-
-
-
 
   @override
   void initState() {
     super.initState();
     _getSchoolInfo();
-
   }
+
   late BuildContext _context; // Declare _context here
   @override
   Widget build(BuildContext context) {
@@ -358,7 +353,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        toolbarHeight: 80.h,
+        toolbarHeight: 70.h,
         title: Text(
           "Parent Profile",
           style: TextStyle(fontSize: 20.sp, color: Colors.white),
@@ -377,29 +372,20 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
         ),
         child: SizedBox(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8,90,8,8),
+            padding: const EdgeInsets.fromLTRB(8, 110, 8, 28),
             child: Card(
               child: Container(
                 color: Colors.transparent,
                 padding: const EdgeInsets.all(20),
                 child: isLoading
                     ? Center(
-                        child:
-                            CircularProgressIndicator()) // Show a loading indicator
+                    child:
+                    CircularProgressIndicator()) // Show a loading indicator
                     : SingleChildScrollView(
                   child: FormBuilder(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Text(
-                          "Parent Profile",
-                          style: TextStyle(
-                              fontSize: 18.sp, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          height: 10.h,
-                        ),
-
                         StuTextField(
                           label: 'Father Name',
                           name: 'Father Name',
@@ -411,10 +397,10 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                         ),
                         StuEditTextField(
                           labelText: 'Occupation',
-                          initialValue: ParentDetmod?.fatherOccupation ?? '',
+                          initialValue:
+                          ParentDetmod?.fatherOccupation ?? '',
                           keyboardType: TextInputType.name,
                           isRequired: true,
-
                           onChanged: (value) {
                             setState(() {
                               ParentDetmod?.fatherOccupation = value;
@@ -434,6 +420,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                         ),
                         StuEditTextField(
                           labelText: 'Father Adhar Card no.',
+                          readOnly: true,
                           initialValue: ParentDetmod?.parentAdharNo ?? '',
                           keyboardType: TextInputType.number,
                           isRequired: true,
@@ -446,8 +433,19 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
 
                         LabeledDropdown(
                           label: "Blood Group", // Keep the label static
-                          options: ['Select','AB+', 'AB-', 'B+', 'B-', 'A+', 'A-', 'O+', 'O-'],
-                          selectedValue: ParentDetmod?.fBloodGroup ?? '', // Ensure the selected value is set
+                          options: [
+                            'Select',
+                            'AB+',
+                            'AB-',
+                            'B+',
+                            'B-',
+                            'A+',
+                            'A-',
+                            'O+',
+                            'O-'
+                          ],
+                          selectedValue: ParentDetmod?.fBloodGroup ??
+                              '', // Ensure the selected value is set
                           onChanged: (String? newValue) {
                             setState(() {
                               if (newValue != null) {
@@ -457,8 +455,8 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                           },
                         ),
 
-
                         StuEditTextField(
+
                           labelText: 'Telephone',
                           initialValue: ParentDetmod?.fOfficeTel ?? '',
                           keyboardType: TextInputType.number,
@@ -470,6 +468,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                         ),
 
                         StuEditTextField(
+                          readOnly: true,
                           labelText: 'Email id',
                           initialValue: ParentDetmod?.fEmail ?? '',
                           keyboardType: TextInputType.name,
@@ -488,8 +487,11 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                             // Open the date picker dialog
                             DateTime? selectedDate = await showDatePicker(
                               context: context,
-                              initialDate: _fatherDobController.text.isNotEmpty
-                                  ? DateTime.tryParse(_fatherDobController.text) ?? DateTime.now()
+                              initialDate: _fatherDobController
+                                  .text.isNotEmpty
+                                  ? DateTime.tryParse(
+                                  _fatherDobController.text) ??
+                                  DateTime.now()
                                   : DateTime.now(),
                               firstDate: DateTime(1900),
                               lastDate: DateTime.now(),
@@ -498,20 +500,25 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                             if (selectedDate != null) {
                               setState(() {
                                 // Format the date with leading zeros for day and month
-                                String formattedDay = selectedDate.day.toString().padLeft(2, '0');
-                                String formattedMonth = selectedDate.month.toString().padLeft(2, '0');
-                                String formattedYear = selectedDate.year.toString();
+                                String formattedDay = selectedDate.day
+                                    .toString()
+                                    .padLeft(2, '0');
+                                String formattedMonth = selectedDate.month
+                                    .toString()
+                                    .padLeft(2, '0');
+                                String formattedYear =
+                                selectedDate.year.toString();
 
                                 _fatherDobController.text =
                                 "$formattedDay-$formattedMonth-$formattedYear";
 
                                 // Update ParentDetmod
-                                ParentDetmod?.fDob = "$formattedYear-$formattedMonth-$formattedDay";
+                                ParentDetmod?.fDob =
+                                "$formattedYear-$formattedMonth-$formattedDay";
                               });
                             }
                           },
                         ),
-
 
                         StuTextField(
                           label: 'Mother Name',
@@ -525,7 +532,8 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                         ),
                         StuEditTextField(
                           labelText: 'Occupation',
-                          initialValue: ParentDetmod?.motherOccupation ?? '',
+                          initialValue:
+                          ParentDetmod?.motherOccupation ?? '',
                           keyboardType: TextInputType.name,
                           onChanged: (value) {
                             setState(() {
@@ -544,6 +552,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                           },
                         ),
                         StuEditTextField(
+                          readOnly: true,
                           labelText: 'Mother Adhar Card no.',
                           initialValue: ParentDetmod?.mAdharNo ?? '',
                           keyboardType: TextInputType.number,
@@ -557,8 +566,19 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
 
                         LabeledDropdown(
                           label: "Blood Group", // Keep the label static
-                          options: ['Select','AB+', 'AB-', 'B+', 'B-', 'A+', 'A-', 'O+', 'O-'],
-                          selectedValue: ParentDetmod?.mBloodGroup ?? '', // Ensure the selected value is set
+                          options: [
+                            'Select',
+                            'AB+',
+                            'AB-',
+                            'B+',
+                            'B-',
+                            'A+',
+                            'A-',
+                            'O+',
+                            'O-'
+                          ],
+                          selectedValue: ParentDetmod?.mBloodGroup ??
+                              '', // Ensure the selected value is set
                           onChanged: (String? newValue) {
                             setState(() {
                               if (newValue != null) {
@@ -580,6 +600,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                         ),
 
                         StuEditTextField(
+                          readOnly: true,
                           labelText: 'Email id',
                           initialValue: ParentDetmod?.mEmailid ?? '',
                           keyboardType: TextInputType.name,
@@ -598,8 +619,11 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                             // Open the date picker dialog
                             DateTime? selectedDate = await showDatePicker(
                               context: context,
-                              initialDate: _motherDobController.text.isNotEmpty
-                                  ? DateTime.tryParse(_motherDobController.text) ?? DateTime.now()
+                              initialDate: _motherDobController
+                                  .text.isNotEmpty
+                                  ? DateTime.tryParse(
+                                  _motherDobController.text) ??
+                                  DateTime.now()
                                   : DateTime.now(),
                               firstDate: DateTime(1900),
                               lastDate: DateTime.now(),
@@ -608,20 +632,25 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                             if (selectedDate != null) {
                               setState(() {
                                 // Format the date with leading zeros for day and month
-                                String formattedDay = selectedDate.day.toString().padLeft(2, '0');
-                                String formattedMonth = selectedDate.month.toString().padLeft(2, '0');
-                                String formattedYear = selectedDate.year.toString();
+                                String formattedDay = selectedDate.day
+                                    .toString()
+                                    .padLeft(2, '0');
+                                String formattedMonth = selectedDate.month
+                                    .toString()
+                                    .padLeft(2, '0');
+                                String formattedYear =
+                                selectedDate.year.toString();
 
                                 _motherDobController.text =
                                 "$formattedDay-$formattedMonth-$formattedYear";
 
                                 // Update ParentDetmod
-                                ParentDetmod?.mDob = "$formattedYear-$formattedMonth-$formattedDay";
+                                ParentDetmod?.mDob =
+                                "$formattedYear-$formattedMonth-$formattedDay";
                               });
                             }
                           },
                         ),
-
 
                         SizedBox(height: 20),
                         Column(
@@ -646,13 +675,17 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                 Expanded(
                                   flex: 2,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       StuEditTextField(
+                                        readOnly: true,
                                         labelText: 'Father\'s No.',
-                                        initialValue: ParentDetmod?.fMobile ?? '',
+                                        initialValue:
+                                        ParentDetmod?.fMobile ?? '',
                                         isRequired: true,
-                                        keyboardType: TextInputType.number,
+                                        keyboardType:
+                                        TextInputType.number,
                                         onChanged: (value) {
                                           setState(() {
                                             ParentDetmod?.fMobile = value;
@@ -671,13 +704,21 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                     });
 
                                     // Validate and make API call if selected
-                                    if (ParentDetmod?.fMobile?.isNotEmpty == true &&
-                                        ParentDetmod!.fMobile!.length >= 10) {
-                                      await updateContactDetails(ParentDetmod!.fMobile!, shortName,selectedSmsRecipient!);
+                                    if (ParentDetmod
+                                        ?.fMobile?.isNotEmpty ==
+                                        true &&
+                                        ParentDetmod!.fMobile!.length >=
+                                            10) {
+                                      await updateContactDetails(
+                                          ParentDetmod!.fMobile!,
+                                          shortName,
+                                          selectedSmsRecipient!);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Father\'s mobile number is empty or invalid.'),
+                                          content: Text(
+                                              'Father\'s mobile number is empty or invalid.'),
                                         ),
                                       );
                                     }
@@ -693,13 +734,17 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                 Expanded(
                                   flex: 2,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       StuEditTextField(
+                                        readOnly: true,
                                         labelText: 'Mother\'s No.',
-                                        initialValue: ParentDetmod?.mMobile ?? '',
+                                        initialValue:
+                                        ParentDetmod?.mMobile ?? '',
                                         isRequired: true,
-                                        keyboardType: TextInputType.number,
+                                        keyboardType:
+                                        TextInputType.number,
                                         onChanged: (value) {
                                           setState(() {
                                             ParentDetmod?.mMobile = value;
@@ -718,13 +763,21 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                     });
 
                                     // Validate and make API call if selected
-                                    if (ParentDetmod?.mMobile?.isNotEmpty == true &&
-                                        ParentDetmod!.mMobile!.length >= 10) {
-                                      await updateContactDetails(ParentDetmod!.mMobile!, shortName,selectedSmsRecipient!);
+                                    if (ParentDetmod
+                                        ?.mMobile?.isNotEmpty ==
+                                        true &&
+                                        ParentDetmod!.mMobile!.length >=
+                                            10) {
+                                      await updateContactDetails(
+                                          ParentDetmod!.mMobile!,
+                                          shortName,
+                                          selectedSmsRecipient!);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Mother\'s mobile number is empty or invalid.'),
+                                          content: Text(
+                                              'Mother\'s mobile number is empty or invalid.'),
                                         ),
                                       );
                                     }
@@ -736,44 +789,47 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                           ],
                         ),
 
-
                         SizedBox(
                           height: 20.h,
                         ),
                         ElevatedButton(
                           onPressed: () async {
-
                             if (selectedSmsRecipient == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Please select either Father or Mother mobile number to proceed.'),
+                                  content: Text(
+                                      'Please select either Father or Mother mobile number to proceed.'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                               return;
                             }
 
-                            String selectedNumber = selectedSmsRecipient == 'Father'
+                            String selectedNumber =
+                            selectedSmsRecipient == 'Father'
                                 ? ParentDetmod?.fMobile ?? ''
                                 : ParentDetmod?.mMobile ?? '';
 
                             if (selectedNumber.length != 10) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Please enter a valid 10-digit mobile number.'),
+                                  content: Text(
+                                      'Please enter a valid 10-digit mobile number.'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                               return;
                             }
 
-
-                            String? aadharNumber = ParentDetmod?.parentAdharNo;
+                            String? aadharNumber =
+                                ParentDetmod?.parentAdharNo;
 
                             // Check if Aadhar number is empty or not exactly 12 digits
-                            if (aadharNumber == null || aadharNumber.length != 12) {
+                            if (aadharNumber == null ||
+                                aadharNumber.length != 12) {
                               Fluttertoast.showToast(
-                                msg: "Enter a valid 12-digit numeric Father Aadhar number",
+                                msg:
+                                "Enter a valid 12-digit numeric Father Aadhar number",
                                 toastLength: Toast.LENGTH_LONG,
                                 gravity: ToastGravity.BOTTOM,
                                 backgroundColor: Colors.red,
@@ -818,7 +874,6 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                               return; // Stop execution if validation fails
                             }
 
-
                             if (ParentDetmod?.fatherOccupation == '') {
                               Fluttertoast.showToast(
                                 msg: "Please enter Father Occupation",
@@ -831,12 +886,17 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                               return; // Stop execution if validation fails
                             }
 
-                            String? maadharNumber = ParentDetmod?.mAdharNo;
+                            String? maadharNumber =
+                                ParentDetmod?.mAdharNo;
 
                             // Check if Aadhar number is empty or not exactly 12 digits
-                            if (maadharNumber == null || maadharNumber.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(maadharNumber)) {
+                            if (maadharNumber == null ||
+                                maadharNumber.length != 12 ||
+                                !RegExp(r'^[0-9]{12}$')
+                                    .hasMatch(maadharNumber)) {
                               Fluttertoast.showToast(
-                                msg: "Enter a valid 12-digit numeric Mother Aadhar number",
+                                msg:
+                                "Enter a valid 12-digit numeric Mother Aadhar number",
                                 toastLength: Toast.LENGTH_LONG,
                                 gravity: ToastGravity.BOTTOM,
                                 backgroundColor: Colors.red,
@@ -849,34 +909,45 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                 Uri.parse("${url}update_parent"),
                                 body: {
                                   'reg_id': reg_idstr,
-                                  'father_occupation': ParentDetmod?.fatherOccupation ?? '',
+                                  'father_occupation':
+                                  ParentDetmod?.fatherOccupation ??
+                                      '',
 
-                                  'f_blood_group': ParentDetmod?.fBloodGroup ?? '',
-                                  'm_blood_group': ParentDetmod?.mBloodGroup ?? '',
-                                  'parent_adhar_no': ParentDetmod?.parentAdharNo ?? '',
-                                  'm_adhar_no': ParentDetmod?.mAdharNo ?? '',
+                                  'f_blood_group':
+                                  ParentDetmod?.fBloodGroup ?? '',
+                                  'm_blood_group':
+                                  ParentDetmod?.mBloodGroup ?? '',
+                                  'parent_adhar_no':
+                                  ParentDetmod?.parentAdharNo ?? '',
+                                  'm_adhar_no':
+                                  ParentDetmod?.mAdharNo ?? '',
 
                                   'f_dob': ParentDetmod?.fDob ?? '',
                                   'm_dob': ParentDetmod?.mDob ?? '',
 
-                                  'f_office_add': ParentDetmod?.fOfficeAdd ?? '',
-                                  'f_office_tel': ParentDetmod?.fOfficeTel ?? '',
+                                  'f_office_add':
+                                  ParentDetmod?.fOfficeAdd ?? '',
+                                  'f_office_tel':
+                                  ParentDetmod?.fOfficeTel ?? '',
                                   'f_mobile': ParentDetmod?.fMobile ?? '',
                                   'f_email': ParentDetmod?.fEmail ?? '',
 
-                                  'mother_occupation': ParentDetmod?.motherOccupation ?? '',
-                                  'm_emailid': ParentDetmod?.mEmailid ?? '',
-                                  'm_office_add': ParentDetmod?.mOfficeAdd ?? '',
-                                  'm_office_tel': ParentDetmod?.mOfficeTel,
+                                  'mother_occupation':
+                                  ParentDetmod?.motherOccupation ??
+                                      '',
+                                  'm_emailid':
+                                  ParentDetmod?.mEmailid ?? '',
+                                  'm_office_add':
+                                  ParentDetmod?.mOfficeAdd ?? '',
+                                  'm_office_tel':
+                                  ParentDetmod?.mOfficeTel,
                                   'm_mobile': ParentDetmod?.mMobile,
                                   // 'academic_yr': academic_yrstr,
                                   'short_name': shortName
                                 },
                               );
-                              print(
-                                  'ParentResponse status code: ${response.statusCode}');
-                              print(
-                                  'ParentResponse body: ${response.body}');
+                              log('ParentResponse status code: ${response.statusCode}');
+                              log('ParentResponse body: ${response.body}');
 
                               if (response.statusCode == 200) {
                                 Fluttertoast.showToast(
@@ -890,7 +961,10 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                 );
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => ParentDashBoardPage(academic_yr:academic_yrstr,shortName: shortName)),
+                                  MaterialPageRoute(
+                                      builder: (_) => ParentDashBoardPage(
+                                          academic_yr: academic_yrstr,
+                                          shortName: shortName)),
                                 );
                                 // Navigator.pop(context);
                               } else {
@@ -905,9 +979,6 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
                                 );
                               }
                             }
-
-
-
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blueAccent,
@@ -959,6 +1030,7 @@ class _DrawerParentProfilePage extends State<DrawerParentProfilePage> {
     );
   }
 }
+
 class BirthdatTextField extends StatelessWidget {
   final String labelText;
   final String? initialValue;
@@ -970,7 +1042,7 @@ class BirthdatTextField extends StatelessWidget {
   final TextEditingController controller; // Accept controller as parameter
 
   const BirthdatTextField({
-    Key? key,
+    super.key,
     required this.labelText,
     this.initialValue,
     this.keyboardType = TextInputType.text,
@@ -979,7 +1051,7 @@ class BirthdatTextField extends StatelessWidget {
     this.onTap,
     this.suffixIcon,
     required this.controller, // Receive controller here
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -80,13 +80,23 @@ class _HomeWorkNotePage extends State<HomeWorkNotePage> {
       },
     );
 
+    print('homework Response body: ${reg_id}');
+    print('homework Response body: ${widget.studentId}');
+    print('homework Response body: ${shortName}');
+    print('homework Response body: ${url}');
+    print('homework Response body: ${widget.classId}');
+    print('homework Response body: ${widget.secId}');
+    print('homework Response body: ${academic_yr}');
+    print('homework Response body: ${response.body}');
+
+
     if (response.statusCode == 200) {
       if (response.body.isEmpty) {
         throw Exception('No homework assigned');
       }
 
       try {
-        List jsonResponse = json.decode(response.body);
+        List jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
         return jsonResponse.map((homework) => Homework.fromJson(homework)).toList();
       } catch (e) {
         throw Exception('Error parsing JSON: $e');

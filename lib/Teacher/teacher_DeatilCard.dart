@@ -122,6 +122,22 @@ class TeacherDetailCard extends StatelessWidget {
     }
   }
   Widget buildRow(String label, String value) {
+    // Normalize Marathi/Hindi text with proper line breaks
+    final String formatted = value
+    // 1. Break BEFORE every Devanagari numbered item like १. २. ३.
+        .replaceAll(RegExp(r'(?<!^)\s*(?=[०-९]+\.)'), '\n')
+    // 2. Break AFTER "-( )" or "-(  )" patterns
+        .replaceAll(RegExp(r'-\(\s*\)\s*'), '-( )\n')
+    // 3. Break AFTER Marathi danda '।'
+        .replaceAll('।', '।\n')
+    // 4. Collapse multiple spaces
+        .replaceAll(RegExp(r'[ \t]{2,}'), ' ')
+    // 5. Remove extra blank lines
+        .replaceAll(RegExp(r'\n{2,}'), '\n')
+    // 6. Trim leading newline
+        .replaceAll(RegExp(r'^\n+'), '')
+        .trim();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -135,8 +151,12 @@ class TeacherDetailCard extends StatelessWidget {
         const SizedBox(width: 8.0),
         Expanded(
           child: Text(
-            value,
-            style: TextStyle(fontSize: 14.sp),
+            formatted,
+            style: TextStyle(
+              fontSize: 14.sp,
+              height: 1.6,          // spacing between lines (Devanagari ke liye zaruri)
+              letterSpacing: 0.2,
+            ),
           ),
         ),
       ],

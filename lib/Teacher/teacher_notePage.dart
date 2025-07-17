@@ -71,7 +71,8 @@ class _TeacherNotePageState extends State<TeacherNotePage> {
     );
 
     if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+      List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+
       print(data);
       return data.map((item) => TeacherNote.fromJson(item)).toList();
     } else {

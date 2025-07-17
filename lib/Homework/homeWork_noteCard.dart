@@ -4,6 +4,7 @@ import 'package:evolvu/common/common_style.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../Teacher/textSanitizer.dart';
 import 'homeWork_notePage.dart';
 
 
@@ -60,9 +61,12 @@ class Homework {
   });
 
   factory Homework.fromJson(Map<String, dynamic> json) {
+    String rawDescription = json['description'] ?? '';
+    String cleanedDescription = TextSanitizer.cleanText(rawDescription);
+
     return Homework(
       homeworkId: json['homework_id'] ?? '',
-      description: json['description'] ?? '',
+      description: cleanedDescription,
       teacherId: json['teacher_id'] ?? '',
       sectionId: json['section_id'] ?? '',
       smId: json['sm_id'] ?? '',

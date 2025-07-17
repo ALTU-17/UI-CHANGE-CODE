@@ -23,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       _fadeController.forward();
     });
 
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -74,7 +74,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                  child: Column(
                    children: [
                      Image.asset(
-                       'assets/ace.png', // Replace with your background image
+                       'assets/icons/logo2.png', // Replace with your background image
                        height: 50,
                      ),
                      const SizedBox(height: 10),

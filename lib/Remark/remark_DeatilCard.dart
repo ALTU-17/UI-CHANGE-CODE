@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../Teacher/Attachment.dart';
+import '../Teacher/textSanitizer.dart';
 
 class RemarkDetailCard extends StatelessWidget {
   final String shortName;
@@ -28,6 +29,7 @@ class RemarkDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String cleanedNote = TextSanitizer.cleanText(description);
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
@@ -61,6 +63,7 @@ class RemarkDetailCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: 10.h),
+
             Expanded(
               child: ListView.builder(
                 padding: EdgeInsets.only(top: 6.h),
@@ -71,7 +74,7 @@ class RemarkDetailCard extends StatelessWidget {
                     child: Center(
                       child: RemarkDetailPage(
                         remarkInfo: RemarkInfo(
-                          description: description,
+                          description: cleanedNote,
                           attachment: imageList,
                           remarkDate: remarkDate,
                           remarkId: remarkId,

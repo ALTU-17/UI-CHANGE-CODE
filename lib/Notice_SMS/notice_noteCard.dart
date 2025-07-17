@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:evolvu/common/common_style.dart';
 
 import '../Teacher/Attachment.dart';
+import '../Teacher/textSanitizer.dart';
 
 class Notice {
   final String noticeId;
@@ -50,11 +51,15 @@ class Notice {
   });
 
   factory Notice.fromJson(Map<String, dynamic> json) {
+    String rawDescription = json['notice_desc'] ?? '';
+    String cleanedDescription = TextSanitizer.cleanText(rawDescription);
+
     return Notice(
       noticeId: json['notice_id']?.toString() ?? '',
       unqId: json['unq_id']?.toString() ?? '',
       subject: json['subject']?.toString() ?? '',
-      noticeDesc: json['notice_desc']?.toString() ?? '',
+      noticeDesc: cleanedDescription,
+      // noticeDesc: json['notice_desc']?.toString() ?? '',
       noticeDate: json['notice_date']?.toString() ?? '',
       startDate: json['start_date']?.toString() ?? '',
       endDate: json['end_date']?.toString() ?? '',

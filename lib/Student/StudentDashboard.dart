@@ -21,13 +21,17 @@ import '../Attendance/attendance.dart';
 import '../Attendance/circleAttendance.dart';
 import '../ExamTimeTable/examTimeTable.dart';
 import '../ExamTimeTable/timeTable.dart';
+import '../ExtraCurricular/screens/achievement_list_screen.dart';
 import '../Notice_SMS/notice_notePage.dart';
 import '../QR/QR_Code.dart';
 import '../ResultChart.dart';
 import '../Utils&Config/api.dart';
+import '../WebViewScreens/FeedbackWebview.dart';
+import '../WebViewScreens/LMS.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../WebViewScreens/SmartChat_WebView.dart';
 import '../common/rotatedDivider_Card.dart';
+import '../reAdmissionConfirmationPage.dart';
 import '../result.dart';
 
 class CardItem {
@@ -35,6 +39,7 @@ class CardItem {
   final String imagePath;
   final String title;
   final Function(BuildContext context) onTap;
+  final bool showBadge1; // Optional badge count
   final bool showBadge; // Optional badge count
   final bool showBadgenotice; // Optional badge count
   final bool showBadgeTnote; // Optional badge count
@@ -45,6 +50,7 @@ class CardItem {
     required this.imagePath,
     required this.title,
     required this.onTap,
+    this.showBadge1 = false,
     this.showBadge = false,
     this.showBadgenotice = false,
     this.showBadgeTnote = false,
@@ -57,8 +63,10 @@ class StudentActivityPage extends StatefulWidget {
   final String shortName;
   final String studentId;
   final String academicYr;
+  final String academic_yrShow;
   final String url;
   final String firstName;
+  final String fullName;
   final String rollNo;
   final String className;
   final String cname;
@@ -74,8 +82,10 @@ class StudentActivityPage extends StatefulWidget {
     required this.shortName,
     required this.studentId,
     required this.academicYr,
+    required this.academic_yrShow,
     required this.url,
     required this.firstName,
+    required this.fullName,
     required this.rollNo,
     required this.className,
     required this.cname,
@@ -100,6 +110,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   // String academic_yr = "";
   String reg_id = "";
   String url = "";
+  String laravel_project_url = "";
   String imageUrl = "";
   int unreadCount = 0;
   int noticeunreadCount = 0;
@@ -113,17 +124,34 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   String paymentUrl="";
   String paymentUrlShare="";
   String smartchat_url="";
+  String past_que_papers_url="";
+
+  int next_class_id=0;
+  // late bool readmission_allowed;
+  String next_academic_yr="";
+  String next_classname="";
+
+  bool _isLoading = true;
+  bool readmission_allowed = false;
+
+  int past_que_papers =0;
+  int readmissionFlag =0;
   int receipt_button=0;
   int online_fees_payment=0;
   int smartchat=0;
+  int feedbackIcon=0;
   String encryptedUsername="";
 
   int pageIndex = 0;
   late BuildContext _context;
+  late Future<void> _schoolInfoFuture;
 
   @override
   void initState() {
     super.initState();
+
+    _schoolInfoFuture = _getSchoolInfo();
+
     fetchUnreadHomeworkCount();
     fetchUnreadnotices();
     fetchUnreadTechetNotes();
@@ -131,6 +159,135 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     fetchDashboardData();
   }
 
+  Future<void> _loadNextClassInfo() async {
+    // setState(() {
+    //   _isLoading = true;
+    // });
+
+    try {
+      final token = await getLaravelToken();
+      print('token body: ${token}');
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication failed');
+      }
+
+      final url = Uri.parse('${laravel_project_url}next_classwithreadmission/${widget.classId}/${widget.studentId}');
+      print('url body: ${url}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('Next Class API Response Status: ${response.statusCode}');
+      print('Next Class API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        if (responseData['status'] == true) {
+          final data = responseData['data'];
+
+          if (data.isNotEmpty) {
+            final firstItem = data[0];
+
+            setState(() {
+              next_class_id = firstItem['next_class_id'];
+              next_classname = firstItem['classname'];
+              next_academic_yr = firstItem['academic_yr'];
+              readmission_allowed = firstItem['readmission_allowed'];
+            });
+
+            print('next_class_id: $next_class_id');
+            print('next_classname: $next_classname');
+            print('next_academic_yr: $next_academic_yr');
+            print('readmission_allowed: $readmission_allowed');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching next class info: $e');
+    }
+  }
+
+  Future<String?> getLaravelToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_token');
+  }
+
+  Future<Map<String, dynamic>?> getNextClassInfo() async {
+    try {
+      // Get authentication token
+      final token = await getLaravelToken();
+      print('token body: ${token}');
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Authentication failed');
+      }
+
+      final url = Uri.parse('${laravel_project_url}next_classwithreadmission/${widget.classId}/${widget.studentId}');
+      print('url body: ${url}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Connection timeout');
+        },
+      );
+
+      print('Next Class API Response Status: ${response.statusCode}');
+      print('Next Class API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        if (responseData['status'] == true) {
+          final data = responseData['data'];
+
+          // Check if data is a List (array) and not empty
+          if ( data.isNotEmpty) {
+            // Access the first element of the list
+            final firstItem = data[0];
+
+            // Store data into variables
+            next_class_id = firstItem['next_class_id'];
+            next_classname = firstItem['classname'];
+            next_academic_yr = firstItem['academic_yr'];
+            readmission_allowed = firstItem['readmission_allowed'];
+
+            print('next_class_id: $next_class_id');
+            print('next_classname: $next_classname');
+            print('next_academic_yr: $next_academic_yr');
+            print('readmission_allowed: $readmission_allowed');
+
+            // Return the data
+            return {
+              'next_class_id': next_class_id,
+              'next_classname': next_classname,
+              'next_academic_yr': next_academic_yr,
+              'readmission_allowed': readmission_allowed,
+            };
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching next class info: $e');
+      return null;
+    }
+  }
   Future<List<String>> getAbsentDates(String studentId) async {
     final url = '${widget.url}get_all_absent_dates'; // Replace with your actual endpoint
 
@@ -148,10 +305,11 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
 
       print('Response get_all_absent_dates studentId: $studentId');
       print('Response get_all_absent_dates: ${response.body}');
+      print('Response widget.attendance_perc: ${widget.attendance_perc}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
+        print('Response get_all_absent_dates: ${response.body}');
         // Ensure absent_dates is a list of maps with a string field "absent_date"
         if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
           final absentDates = data.map<String>((item) => item['absent_date'].toString()).toList();
@@ -167,14 +325,13 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     }
   }
 
-
-
-
   Future<void> _getSchoolInfo() async {
     final prefs = await SharedPreferences.getInstance();
     String? schoolInfoJson = prefs.getString('school_info');
     String? logUrls = prefs.getString('logUrls');
     print('logUrls====\\\\\: $logUrls');
+
+
     if (logUrls != null) {
       try {
         Map<String, dynamic> logUrlsparsed = json.decode(logUrls);
@@ -198,6 +355,9 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
 
         shortName = parsedData['short_name'];
         url = parsedData['url'];
+        laravel_project_url = parsedData['laravel_project_url'];
+
+        getNextClassInfo();
 
         print('Short Name: $shortName');
         print('URL: $url');
@@ -224,7 +384,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
       List<dynamic> apiResponse = json.decode(response.body);
       if (apiResponse.isNotEmpty) {
         Map<String, dynamic> firstStudent = apiResponse[0];
-         Fname = firstStudent['first_name'];
+        Fname = firstStudent['first_name'];
         print('Fname: $Fname');
       } else {
         print('No data found in API response.');
@@ -249,16 +409,17 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
       Map<String, dynamic> responseData = json.decode(get_student_profile_images_details.body);
       imageUrl = responseData['image_url'];
       print('Image URL: $imageUrl');
-    if (imageUrl.hashCode == 404) {
-      print('Image not found, using default image.');
-      imageUrl = ""; // or set a default image URL if available
-    } else {
-      print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
+      if (imageUrl.hashCode == 404) {
+        print('Image not found, using default image.');
+        imageUrl = ""; // or set a default image URL if available
+      } else {
+        print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
+      }
     }
-  }
   }
 
   Future<void> fetchDashboardData() async {
+
     final url = Uri.parse(widget.url +'show_icons_parentdashboard_apk');
     // print('Receipt URL: $shortName');
 
@@ -268,18 +429,27 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
       );
 
       if (response.statusCode == 200) {
-        print('response.body URL: ${response.body}');
+        print('Student show_icons_parentdashboard_apk: ${response.body}');
+
+        if (response.body.trim().isEmpty) {
+          print("Empty response");
+          return;
+        }
 
         final Map<String, dynamic> data = jsonDecode(response.body);
 
         // Extract the required fields
-        receiptUrl = data['receipt_url'];
-        receiptButton = data['receipt_button'];
-        receipt_button = data['receipt_button'];
-        smartchat = data['smartchat'];
-        online_fees_payment = data['online_fees_payment'];
-        paymentUrl = data['payment_url'];
+        receiptUrl = data['receipt_url']??'';
+        receiptButton = data['receipt_button']??'';
+        receipt_button = data['receipt_button']??'';
+        smartchat = data['smartchat']??'';
+        feedbackIcon = data['parent_observation']??'';
+        online_fees_payment = data['online_fees_payment']??'';
+        paymentUrl = data['payment_url']??'';
         smartchat_url = data['smartchat_url'];
+        readmissionFlag  = data['readmission_confirm']??'';
+        past_que_papers  = data['past_que_papers']??'';
+        past_que_papers_url  = data['past_que_papers_url']??'';
         String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
 
         String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
@@ -290,9 +460,9 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         String encryptedUsername = encryptUsername(username, secretKey);
 
         paymentUrlShare = paymentUrl + "?reg_id=" + widget.reg_id +
-            "&academic_yr=" + academic_yr +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
+            "&academic_yr=" + academic_yrShow +  "&user_id=" + URi_username + "&encryptedUsername=" + encryptedUsername +"&short_name=" + shortName;
 
-        print('Encrypted Username: $paymentUrlShare');
+        print('paymentUrl body: $paymentUrlShare');
         print('Encrypted Username: $encryptedUsername');
         // Use these values as needed
         print('username URL: $username');
@@ -300,13 +470,16 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         print('Receipt Button: $receiptButton');
         print('Payment URL: $paymentUrl');
         print('smartchat_url : $smartchat_url');
+        print('readmissionFlag  : $readmissionFlag ');
+        print('past_que_papers  : $past_que_papers ');
+        print('past_que_papers_url  : $past_que_papers_url ');
 
         // You can store these values in variables or use them directly
       } else {
         print('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error: $e');
+      print('show_icons_parentdashboard_apk Error: $e');
     }
   }
 
@@ -464,27 +637,28 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
 
   @override
   Widget build(BuildContext context) {
-    _context = context;
-    final academicYearProvider = Provider.of<AcademicYearProvider>(context);
 
-    refreshDash();
+    _context = context;
+
+    final academicYearProvider = Provider.of<AcademicYearProvider>(context);
+    // refreshDash();
     final List<CardItem> cardItems = [
 
       if(academicYearProvider.academic_yr == widget.academicYr)
-      CardItem(
-        imagePath: widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png', // Local fallback image
-        title: 'Student Profile',
-        onTap: (context) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentProfilePage(studentId: widget.studentId,shortName: shortName,cname: widget.cname,
-                secname: widget.secname,academic_yr: academic_yr
-                ,),
-            ),
-          );
-        },
-      ),
+        CardItem(
+          imagePath: widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png', // Local fallback image
+          title: 'Student Profile',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StudentProfilePage(studentId: widget.studentId,shortName: shortName,cname: widget.cname,
+                  secname: widget.secname,academic_yr: academic_yr
+                  ,),
+              ),
+            );
+          },
+        ),
       CardItem(
         imagePath: 'assets/teacher.png',
         title: 'Teacher Note',
@@ -517,7 +691,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         title: 'Homework',
         onTap: (context) async {
           final result = await Navigator.push(
-              context,
+            context,
             MaterialPageRoute(
               builder: (context) => HomeWorkNotePage(studentId: widget.studentId,shortName: shortName,academic_yr: academic_yr
                   ,classId: widget.classId,secId:widget.secId),
@@ -567,19 +741,8 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
         showBadgenotice: true,
       ),
-      // CardItem(
-      //   imagePath: 'assets/calendar.png',
-      //   title: 'Attendance',
-      //   onTap: (context) {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(
-      //         builder: (context) => AttendancePage(),
-      //       ),
-      //     );
-      //     },
-      //   showBadgenotice: true,
-      // ),
+
+
 
       CardItem(
         imagePath: 'assets/calendar.png',
@@ -735,7 +898,212 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         title: 'Attendance',
         onTap: (BuildContext context) async {
           try {
-            // Make API call to get absent dates
+            // Get attendance percentage
+            final double attendancePercentage =
+                double.tryParse(
+                  widget.attendance_perc.toString(),
+                ) ??
+                    0.0;
+
+            print(
+              'Response widget.attendance_perc11: ${widget.attendance_perc}',
+            );
+
+            // ============================================================
+            // 100% ATTENDANCE
+            // ============================================================
+            if (attendancePercentage >= 100) {
+              showDialog(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return Dialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    insetPadding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 24,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        24,
+                        28,
+                        24,
+                        20,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+
+                          // Achievement Icon
+                          Container(
+                            height: 82,
+                            width: 82,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFC107),
+                                  Color(0xFFFF9800),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.30),
+                                  blurRadius: 18,
+                                  spreadRadius: 3,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.emoji_events_rounded,
+                              color: Colors.white,
+                              size: 44,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          const Text(
+                            'Your attendance is 100%',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 23,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          const Text(
+                            'Well done! 🎉',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.deepPurple,
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Percentage
+                          // Container(
+                          //   padding: const EdgeInsets.symmetric(
+                          //     horizontal: 24,
+                          //     vertical: 12,
+                          //   ),
+                          //   decoration: BoxDecoration(
+                          //     color: Colors.green.shade50,
+                          //     borderRadius: BorderRadius.circular(16),
+                          //   ),
+                          //   child: Text(
+                          //     '${attendancePercentage.toStringAsFixed(0)}%',
+                          //     style: TextStyle(
+                          //       fontSize: 32,
+                          //       fontWeight: FontWeight.w800,
+                          //       color: Colors.green.shade700,
+                          //     ),
+                          //   ),
+                          // ),
+
+                          const SizedBox(height: 16),
+
+                          // Achievement message
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.green.shade50,
+                                  Colors.blue.shade50,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.green.shade100,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.verified_rounded,
+                                  color: Colors.green.shade600,
+                                  size: 28,
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                Text(
+                                  '0 Absent Days',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 5),
+
+                                Text(
+                                  'Excellent consistency! Keep up the great work.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text(
+                                'Awesome!',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+
+              // VERY IMPORTANT:
+              // Don't call getAbsentDates() for 100% attendance.
+              return;
+            }
+
+            // ============================================================
+            // LESS THAN 100% → GET ABSENT DATES
+            // ============================================================
+
             final absentDates = await getAbsentDates(widget.studentId);
 
             showDialog(
@@ -743,24 +1111,34 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
               builder: (BuildContext context) {
                 return AlertDialog(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24), // More rounded corners
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  titlePadding: const EdgeInsets.all(0), // Remove default padding
+                  titlePadding: EdgeInsets.zero,
+
                   title: Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.pink, Colors.deepPurple],
+                        colors: [
+                          Colors.pink,
+                          Colors.deepPurple,
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                      ), // Gradient header background
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
                     ),
-                    child: Row(
+                    child: const Row(
                       children: [
-                        const Icon(Icons.event_busy, color: Colors.white, size: 28), // Icon
-                        const SizedBox(width: 12),
-                        const Expanded(
+                        Icon(
+                          Icons.event_busy,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
                           child: Text(
                             'Absent Dates',
                             style: TextStyle(
@@ -773,98 +1151,86 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                       ],
                     ),
                   ),
+
                   content: Container(
                     width: double.maxFinite,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50, // Light background for content
+                      color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: SizedBox(
-                      height: 250, // Increased height for better visibility
+                      height: 250,
                       child: ListView.separated(
-                        itemCount: absentDates.length, // Ensure this is an int
+                        itemCount: absentDates.length,
+
                         separatorBuilder: (context, index) => Divider(
                           thickness: 1.5,
-                          color: Colors.grey.shade300, // Thicker divider
+                          color: Colors.grey.shade300,
                         ),
-                        itemBuilder: (BuildContext context, int index) {
+
+                        itemBuilder: (
+                            BuildContext context,
+                            int index,
+                            ) {
                           return ListTile(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Clicked on: ${absentDates[index]}')),
-                              );
-                            },
-                            leading: CircleAvatar(
+                            leading: const CircleAvatar(
                               backgroundColor: Colors.pinkAccent,
-                              child: Icon(Icons.calendar_today, color: Colors.white),
+                              child: Icon(
+                                Icons.calendar_today,
+                                color: Colors.white,
+                              ),
                             ),
                             title: Text(
                               absentDates[index],
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           );
                         },
                       ),
                     ),
                   ),
+
                   actions: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop(); // Close the dialog
-                            },
-                            icon: Icon(Icons.close, color: Colors.pink),
-                            label: Text(
-                              'CLOSE',
-                              style: TextStyle(color: Colors.pink, fontWeight: FontWeight.bold),
-                            ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                      ),
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.pink,
+                        ),
+                        label: const Text(
+                          'CLOSE',
+                          style: TextStyle(
+                            color: Colors.pink,
+                            fontWeight: FontWeight.bold,
                           ),
-                          // ElevatedButton(
-                          //   style: ElevatedButton.styleFrom(
-                          //     backgroundColor: Colors.pinkAccent,
-                          //     shape: RoundedRectangleBorder(
-                          //       borderRadius: BorderRadius.circular(8),
-                          //     ),
-                          //   ),
-                          //   onPressed: () {
-                          //     // Add any additional action here
-                          //   },
-                          //   child: const Text('ACTION'),
-                          // ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
                 );
               },
             );
-
           } catch (error) {
-            // Handle errors here (e.g., show a snackbar or error message)
+            print('Attendance error: $error');
+
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Absent date List is Empty...')),
+              SnackBar(
+                content: Text(
+                  'Unable to load attendance details: $error',
+                ),
+              ),
             );
           }
-        },
-      ),
-
-      if(smartchat == 1)
-      CardItem(
-        imagePath: 'assets/smartchat.png',
-        title: 'Smart Chat',
-        onTap: (context) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WebViewPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
-                  ,classId: widget.classId,secId:widget.secId,smartchat_url:smartchat_url),
-            ),
-          );
         },
       ),
 
@@ -876,11 +1242,73 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
             context,
             MaterialPageRoute(
               builder: (context) => ResultPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
-                  ,classId: widget.classId,secId:widget.secId,Fname: Fname,className: widget.className),
+                  ,classId: widget.classId,secId:widget.secId,Fname: Fname,className: widget.className, cname: widget.cname,),
             ),
           );
         },
       ),
+
+
+
+      if(readmissionFlag == 1 && readmission_allowed)
+        CardItem(
+        imagePath: 'assets/icons/readmission.png',
+        title: 'Re-Admission',
+        onTap: (context) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ReAdmissionConfirmationPage(
+                laravel_project_url: laravel_project_url,
+                studentName: widget.fullName,
+                currentClass: widget.cname,
+                nextClass: next_classname,
+                academicYr: next_academic_yr,
+                shortName: shortName,
+                studentId: widget.studentId,
+                currentClassId: widget.classId,
+                nextClassId: next_class_id,
+              ),
+            ),
+          );
+        },
+        showBadge1: true,
+      ),
+
+      CardItem(
+        imagePath: 'assets/icons/extracurricular.png',
+        title: 'Extracurricular',
+        onTap: (context) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AchievementListScreen(
+                studentId: widget.studentId,
+                  academicYear: academic_yr
+              ),
+            ),
+          );
+        },
+        showBadge1: true,
+      ),
+
+
+      if(smartchat == 1)
+        CardItem(
+          imagePath: 'assets/smartchat.png',
+          title: 'Smart Chat',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WebViewPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
+                    ,classId: widget.classId,secId:widget.secId,smartchat_url:smartchat_url),
+              ),
+            );
+          },
+        ),
+
+
 
       CardItem(
         imagePath: 'assets/chart.png',
@@ -896,20 +1324,60 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
+
+
+
+      if(past_que_papers == 1)
+        CardItem(
+          imagePath: 'assets/lms.png',
+          title: 'Past question \n      papers',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LMSWebViewScreen(studentId: widget.studentId,past_que_papers_url: past_que_papers_url),
+              ),
+            );
+          },
+          showBadge1: true,
+        ),
+
+
       if(online_fees_payment == 1)
-      CardItem(
-        imagePath: 'assets/cashpayment.png',
-        title: 'Fees Payment',
-        onTap: (context) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaymentWebview(
-                  regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr,receipt_button:receipt_button),
-            ),
-          );
-        },
-      ),
+        CardItem(
+          imagePath: 'assets/cashpayment.png',
+          title: 'Fees Payment',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentWebview(
+                    regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,
+                    shortName: shortName,academicYr: academic_yrShow,receipt_button:receipt_button),
+              ),
+
+            );
+          },
+        ),
+
+
+
+
+      if(feedbackIcon == 1 && ["Nursery", "LKG", "UKG", "1", "2"].contains(widget.cname))
+        CardItem(
+          imagePath: 'assets/parents.png',
+          title: '    Parent\n Observation',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ParentFeedbackPage(studentId: widget.studentId,regId: widget.reg_id,academicYr: widget.academicYr,),
+              ),
+            );
+          },
+          showBadgenotice: false,
+        ),
+
       // CardItem(
       //   imagePath: 'assets/new_module.png', // Path to the new module image
       //   title: 'New Module',
@@ -926,7 +1394,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         return false;
       },
       child: FutureBuilder(
-        future: _getSchoolInfo(),
+        future: _schoolInfoFuture,
         builder: (context, snapshot) {
           return Scaffold(
             backgroundColor: Colors.blue,
@@ -951,7 +1419,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                   ),
                 ),
                 Positioned(
-                  top: 90,
+                  top: 80,
                   left: 0,
                   right: 0,
                   bottom: 0,
@@ -959,7 +1427,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                         Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 0.h),
 
                           child: Card(
@@ -1075,115 +1543,133 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                             final item = cardItems[index];
                             return Card(
                               color: Colors.white,
-                                child: Stack(
+                              child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                InkWell(
-                                  onTap: () => item.onTap(context),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (item.title == 'Attendance')
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: widget.attendance_perc.isNotEmpty && double.tryParse(widget.attendance_perc) != null
-                                              ? CircularAttendanceIndicator(
-                                            percentage: double.parse(widget.attendance_perc) / 100, // Pass percentage as a fraction (0 to 1)
+                                  InkWell(
+                                    onTap: () => item.onTap(context),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        if (item.title == 'Attendance')
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 8.0),
+                                            child: widget.attendance_perc.isNotEmpty && double.tryParse(widget.attendance_perc) != null
+                                                ? CircularAttendanceIndicator(
+                                              percentage: double.parse(widget.attendance_perc) / 100, // Pass percentage as a fraction (0 to 1)
+                                            )
+                                                : CircularAttendanceIndicator(
+                                              percentage: 0, // Default to 0 if data is not available
+                                            ),
                                           )
-                                              : CircularAttendanceIndicator(
-                                            percentage: 0, // Default to 0 if data is not available
-                                          ),
-                                        )
                                         // [{"absent_date":"11-09-2024"}]
-                                      else
-                                      Image.asset(
-                                        item.imagePath,
-                                        height: 50,
-                                      ),
-                                      SizedBox(height: 10),
-                                      Text(
-                                        item.title,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 12.sp,
-                                        ),
-                                      ),
-                                    ],
+                                        else
+                                          Image.asset(
+                                            item.imagePath,
+                                            height: 50,
+                                          ),
+                                        SizedBox(height: 8),
+                                         Text(
+                                            item.title,
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 12.sp,
+                                            ),
+                                          ),
+
+                                      ],
+                                    ),
                                   ),
-                                ),
                                   if (item.showBadge) // Conditionally show the badge
-                                  if (unreadCount != 0) // Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$unreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                    if (unreadCount != 0) // Conditionally show the badge
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$unreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
                                   if (item.showBadgenotice)
                                     if (noticeunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$noticeunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$noticeunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
                                   if (item.showBadgeTnote)
                                     if (TnoteunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$TnoteunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$TnoteunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ), if (item.showBadgeRemark)
+                                      ), if (item.showBadgeRemark)
                                     if (ReamrkunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$ReamrkunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$ReamrkunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                              ],
-                                ),
+                                  if(item.showBadge1)
+                                  Positioned(
+                                        top: 2,
+                                        right: 8,
+                                        child: CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            'New',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                ],
+                              ),
                             );
                           }),
                         ),
@@ -1210,30 +1696,32 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     return name; // If there's no second space, return the original name
   }
 
-Container buildMyNavBar(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
-        _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-        _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
-        _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
-      ],
-    ),
-  );
-}
+  SafeArea buildMyNavBar(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+            _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
+            _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
+            _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
+          ],
+        ),
+      ),
+    );
+  }
 
-Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
     bool isSelected = pageIndex == index;
 
     return GestureDetector(

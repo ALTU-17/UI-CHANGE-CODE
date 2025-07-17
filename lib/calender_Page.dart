@@ -6,6 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:html/parser.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
 
 class CalendarPage extends StatefulWidget {
   final String regId;
@@ -43,15 +48,12 @@ class _CalendarPageState extends State<CalendarPage> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBodyBehindAppBar: true,
-
         body: Column(
           children: [
             Card(
               color: Colors.white,
               child: TableCalendar(
-                // firstDay: _academicYearStart ?? DateTime.utc(2020, 1, 1),
-                // lastDay: _academicYearEnd ?? DateTime.utc(2030, 12, 31),
-              firstDay: DateTime.utc(2020, 1, 1),
+                firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
@@ -65,12 +67,12 @@ class _CalendarPageState extends State<CalendarPage> {
                 },
                 onPageChanged: (focusedDay) {
                   setState(() {
-                    _focusedDay = focusedDay; // Update the focused month
+                    _focusedDay = focusedDay;
                   });
-                  _fetchEvents(focusedDay); // Fetch events for the new month
+                  _fetchEvents(focusedDay);
                 },
                 eventLoader: (day) {
-                  return _events[_normalizeDate(day)] ?? []; // Ensure correct date mapping
+                  return _events[_normalizeDate(day)] ?? [];
                 },
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
@@ -83,18 +85,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 itemCount: _selectedEvents.length,
                 itemBuilder: (context, index) {
                   final event = _selectedEvents[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    color: Color(int.parse(event.color.replaceAll("#", "0xFF"))),
-                    child: ListTile(
-                      leading: const Icon(Icons.info, color: Colors.black54),
-                      title: Text(
-                        '${DateFormat('dd-MM-yyyy').format(event.date)}  ${event.title}', // Use event's actual date
-                        style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  );
+                  return _buildEventCard(event);
                 },
               ),
             ),
@@ -103,6 +94,149 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
   }
+  List<String> extractUrls(String html) {
+    final document = parse(html);
+    final text = document.body?.text ?? "";
+    final urlRegExp = RegExp(
+      r'(https?:\/\/[^\s]+)',
+      caseSensitive: false,
+    );
+    return urlRegExp
+        .allMatches(text)
+        .map((m) => m.group(0))
+        .whereType<String>()
+        .toList();
+  }
+
+  Widget _buildEventCard(Event event) {
+    final ytUrl = extractYoutubeUrl(event.description);
+    final urls = extractUrls(event.description);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      color: Color(int.parse(event.color.replaceAll("#", "0xFF"))),
+      child: ExpansionTile(
+        leading: const Icon(Icons.info, color: Colors.black54),
+        title: Text(
+          '${DateFormat('dd-MM-yyyy').format(event.date)}  ${event.title}',
+          style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Html(
+                  data: event.description,
+                  style: {
+                    "body": Style(
+                      color: Colors.black87,
+                      fontSize: FontSize.medium,
+                    ),
+                  },
+                ),
+                for (final url in urls)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: InkWell(
+                      child: Text(
+                        url,
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                      onTap: () async {
+                        final uri = Uri.parse(url);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                    ),
+                  ),
+                if (ytUrl != null)
+                  InkWell(
+                    child:
+                    Text(
+                      ytUrl,
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    onTap: () async {
+                      final uri = Uri.parse(ytUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                  ),
+                const SizedBox(height: 10),
+                Text(
+                  'Date: ${DateFormat('dd MMMM yyyy').format(event.date)}',
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? extractYoutubeUrl(String html) {
+    try {
+      // First try to find iframe with YouTube URL
+      final iframeRegex = RegExp(
+        r'src="(https?:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_-]+))',
+        caseSensitive: false,
+      );
+      final iframeMatch = iframeRegex.firstMatch(html);
+      if (iframeMatch != null) {
+        final videoId = iframeMatch.group(2)!;
+        return "https://www.youtube.com/watch?v=$videoId";
+      }
+
+      // If no iframe found, look for direct YouTube links
+      final urlRegex = RegExp(
+        r'(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]+)',
+        caseSensitive: false,
+      );
+      final urlMatch = urlRegex.firstMatch(html);
+      if (urlMatch != null) {
+        return urlMatch.group(0);
+      }
+
+      return null;
+    } catch (e) {
+      print('Error extracting YouTube URL: $e');
+      return null;
+    }
+  }
+
+  Future<void> _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch $url')),
+      );
+    }
+  }
+  String _parseHtmlString(String htmlString) {
+    try {
+      // Parse HTML and extract text content
+      final document = parse(htmlString);
+      return document.body?.text ?? htmlString;
+    } catch (e) {
+      return htmlString; // Return original if parsing fails
+    }
+  }
+
 
   /// Normalize date to ensure consistency in event mapping.
   DateTime _normalizeDate(DateTime date) {

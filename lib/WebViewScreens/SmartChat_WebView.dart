@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -27,14 +28,17 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
   bool _isLoading = true; // Add a state variable for loading
-
+  Future<String?> getLaravelToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_token');
+  }
   @override
-  void initState() {
+  void initState() async{
     super.initState();
-
+    final token = await  getLaravelToken();
     print("WEBVIEW URL: " +
         widget.smartchat_url +
-        '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
+        '?student_id=${widget.studentId}&academic_yr=${token}');
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -54,6 +58,7 @@ class _WebViewPageState extends State<WebViewPage> {
       )
       ..loadRequest(Uri.parse(widget.smartchat_url +
           '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
+
   }
 
   @override

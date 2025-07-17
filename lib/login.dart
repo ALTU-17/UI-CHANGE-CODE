@@ -2,26 +2,65 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:evolvu/Student/StudentDashboard.dart';
+import 'package:dio/dio.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:evolvu/username_page.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 // Update the import path accordingly
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'AcademicYearProvider.dart';
-import 'Login.dart';
-import 'Utils&Config/api.dart';
 import 'forgotPassword.dart';
-import 'main.dart';
+
+class AuthService {
+  final Dio _dio = Dio();
+
+
+
+  Future<String?> loginLaravelAndGetToken({
+    required String userId,
+    required String password,
+    required String laravelBaseUrl,
+  }) async {
+    final url = '${laravelBaseUrl}login';
+
+    debugPrint('Laravel login URL: $url');
+    debugPrint('Laravel login body: user_id=$userId');
+
+    try {
+      final response = await _dio.post(
+        url,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+        data: {
+          "user_id": userId,
+          "password": password,
+        },
+      );
+
+      debugPrint('Laravel status: ${response.statusCode}');
+      debugPrint('Laravel response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+        debugPrint('Laravel TOKEN: $token');
+        return token;
+      }
+    } catch (e, st) {
+      debugPrint('Laravel login error: $e');
+      debugPrintStack(stackTrace: st);
+    }
+
+    return null;
+  }
+}
+
 
 class LogUrls {
 
@@ -85,6 +124,7 @@ class _LoginState extends State<LoginPage> {
   bool shouldShowText = false; // Set this based on your condition
   bool _isLoading = false; // Add this line
   String teacherApkUrl = "";
+  String laravel_project_url = "";
   String url = "";
   String? token;
   @override
@@ -99,19 +139,24 @@ class _LoginState extends State<LoginPage> {
     checkLoginStatus(); // Check login status when the login screen is initialized
   }
 
+
   Future<void> _getSchoolInfo() async {
     final prefs = await SharedPreferences.getInstance();
+
     String? schoolInfoJson = prefs.getString('school_info');
 
     if (schoolInfoJson != null) {
       try {
         Map<String, dynamic> parsedData = json.decode(schoolInfoJson);
+        await prefs.setString('laravel_project_url', parsedData['laravel_project_url']);
 
         setState(() {
           shortName = parsedData['short_name'];
+          schoolnamestr = parsedData['name'];
           url = parsedData['url'];
           durl = parsedData['project_url'];
           teacherApkUrl = parsedData['teacherapk_url']; // Ensure this updates
+          laravel_project_url = parsedData['laravel_project_url']; // Ensure this updates
         });
 
         print('Updated School Info:');
@@ -119,6 +164,7 @@ class _LoginState extends State<LoginPage> {
         print('URL: $url');
         print('Project URL: $durl');
         print('Teacher APK URL: $teacherApkUrl');
+        print('LARVEL APK URL: $laravel_project_url');
       } catch (e) {
         print('Error parsing school info: $e');
       }
@@ -163,6 +209,13 @@ class _LoginState extends State<LoginPage> {
       debugPrint("Error fetching FCM token: $e");
     }
   }
+  Future<String?> getLaravelBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_project_url');
+  }
+
+
+
 
 
   Future<String> getDeviceId() async {
@@ -195,7 +248,7 @@ class _LoginState extends State<LoginPage> {
           String schoolId = parsedData['school_id'];
           String name = parsedData['name'];
           shortName = parsedData['short_name'];
-          schoolnamestr = parsedData['short_name'];
+          // schoolnamestr = parsedData['short_name'];
           url = parsedData['url'];
           String teacherApkUrl = parsedData['teacherapk_url'];
           String projectUrl = parsedData['project_url'];
@@ -235,6 +288,7 @@ class _LoginState extends State<LoginPage> {
           setState(() {
             shouldShowText = true;
           });
+
         } else {
           setState(() {
             shouldShowText = false;
@@ -257,15 +311,35 @@ class _LoginState extends State<LoginPage> {
 
           print('logDetJson===>  $logDetJson');
 
-          // Store login status in SharedPreferences
-          storeLoginStatus(true);
-          // Navigate to QRScannerPage after successful login
-          //**dashboard push */
-          //  ElevatedButton(
-          //             onPressed: () {
-          //               Navigator.of(context).pushNamed(loginPage);
-          //             },
 
+          /// ============================
+          /// 🔥 LARAVEL LOGIN STARTS HERE
+          /// ============================
+
+          final laravelBaseUrl = await getLaravelBaseUrl();
+
+          if (laravelBaseUrl != null) {
+            final authService = AuthService();
+
+            final laravelToken = await authService.loginLaravelAndGetToken(
+              userId: ema,
+              password: pass,
+              laravelBaseUrl: laravelBaseUrl,
+            );
+
+            if (laravelToken != null) {
+              await prefs.setString('laravel_token', laravelToken);
+              debugPrint("Laravel token stored successfully");
+            } else {
+              debugPrint("Laravel login failed");
+            }
+          }
+
+          /// ============================
+          /// 🔥 LARAVEL LOGIN END
+          /// ============================
+
+          storeLoginStatus(true);
 
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -290,7 +364,6 @@ class _LoginState extends State<LoginPage> {
       });
     }
   }
-
 
 
   // Store login status in SharedP
@@ -432,7 +505,7 @@ class _LoginState extends State<LoginPage> {
                             SizedBox(width: 8),
 
                             // School name
-                            schoolName.isNotEmpty ?
+                            schoolnamestr.isNotEmpty ?
                             Text(
                               schoolName,
                               style: TextStyle(

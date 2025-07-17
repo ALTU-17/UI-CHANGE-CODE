@@ -142,7 +142,7 @@ class _RemarkNotePage extends State<RemarkNotePage> {
     if (response.statusCode == 200) {
       print('Response: ${response.body}');
 
-      List jsonResponse = json.decode(response.body);
+      List jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       if (jsonResponse.isNotEmpty) {
         Ack = jsonResponse.first['acknowledge']?.toString() ?? '';
       }

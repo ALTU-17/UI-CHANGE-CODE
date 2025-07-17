@@ -4,10 +4,14 @@ import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'ResultChart.dart';
+import 'WebViewScreens/OnlineFeesPayment.dart';
 import 'main.dart';
 
 // Result model class to map the API response
@@ -75,6 +79,7 @@ class ResultPage extends StatefulWidget {
   final String secId;
   final String Fname;
   final String className;
+  final String cname;
 
   ResultPage({
     required this.className,
@@ -84,6 +89,7 @@ class ResultPage extends StatefulWidget {
     required this.shortName,
     required this.classId,
     required this.secId,
+    required this.cname,
   });
 
   @override
@@ -98,9 +104,12 @@ class _ResultPageState extends State<ResultPage> {
   int cbseCardVisible = 0; // 1 means visible, 0 means hidden
   int viewReportCardVisible = 0; // 1 means visible, 0 means hidden
   int resultChartVisible = 0; // 1 means visible, 0 means hidden
+  int hpcVisible = 0; // 1 = show, 0 = hide
+  int FeePendVisible = 0; // 1 = show, 0 = hide
 
   String ShowResult = 'N';
   String CBSE_URL = '';
+  String hpc_reportcard_url = '';
   bool isLoading = true;
   String showCBSE = 'N';
   String error_msg = "";
@@ -110,12 +119,69 @@ class _ResultPageState extends State<ResultPage> {
   void initState() {
     super.initState();
     // CBSE_ReportCard();
-    check_report_card();
+    checkPendingFee();
+    checkHpcReportCard();
+    print('CBSE Report Card is visible ${widget.cname}');
+  }
+
+  Future<void> checkPendingFee() async {
+    final url1 = Uri.parse(url + 'check_pending_fee');
+
+    try {
+      final response = await http.post(
+        url1,
+        body: {
+          'student_id': widget.studentId,
+          'short_name': widget.shortName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('check_pending_fee response: ${response.body}');
+
+        int pendingFee = data['pending_fee'] ?? 0;
+        String msg = data['error_msg'] ?? '';
+
+        setState(() {
+          FeePendVisible = pendingFee; // 1 = pending fee, 0 = clear
+          error_msg = msg;
+          error_msg_flag = (pendingFee == 1);
+        });
+
+        if (pendingFee == 1) {
+          // Only show error message, no exam data or report cards
+          print('⚠️ Pending Fee Detected: $msg');
+          setState(() {
+            examData = [];
+            resultChartVisible = 0;
+            viewReportCardVisible = 0;
+            cbseCardVisible = 0;
+            hpcVisible = 0;
+            isLoading = false;
+          });
+        } else {
+          // No pending fee, continue normal flow
+          print('✅ No Pending Fee');
+          check_report_card(); // Continue normal data loading
+        }
+      } else {
+        print('❌ Failed to fetch pending fee data: ${response.statusCode}');
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking pending fee: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> check_report_card() async {
     final url1 = Uri.parse(url + 'check_report_card');
-    // print('Receipt URL: $shortName');
+    print('check_report_card URL: $url check_report_card');
 
     try {
       final response = await http.post(
@@ -134,23 +200,25 @@ class _ResultPageState extends State<ResultPage> {
         final Map<String, dynamic> data = jsonDecode(response.body);
 
         error_msg = data['error_msg'] ?? ''; // Default to '' if not found
-        int flag = data['flag'];
+        FeePendVisible = data['flag'];
         print('check_report_card response: ${response.body}');
-        print('check_report_card response: ${response.statusCode}');
-        print('check_report_card response111: ${error_msg}');
+        // print('check_report_card response: ${response.statusCode}');
+        // print('check_report_card response111: ${error_msg}');
 
         setState(() {
           // Update viewReportCardVisible based on the API flag
-          viewReportCardVisible = (flag == 1) ? 1 : 0;
+          viewReportCardVisible = (FeePendVisible == 1) ? 1 : 0;
 
           // If flag is 1, fetch dashboard data and exam results
-          if (flag == 1) {
+          if (FeePendVisible == 1) {
             Show_icon();
             fetchExamResults();
           } else if (error_msg.isEmpty) {
             error_msg_flag = false;
             fetchExamResults();
-          } else {
+          } else if (error_msg ==
+              "Please pay the pending fees to view marks and report card.") {
+            fetchExamResults();
             error_msg_flag = true;
             resultChartVisible = 0;
           }
@@ -181,7 +249,7 @@ class _ResultPageState extends State<ResultPage> {
       );
 
       if (response.statusCode == 200) {
-        print('Show Icon response.body URL: ${response.body}');
+        print('Show Icon response body: ${response.body}');
 
         // Safely decode JSON response
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -193,6 +261,9 @@ class _ResultPageState extends State<ResultPage> {
             // Handle the error_msg
             String msg = data['error_msg'] ?? '';
             print('error_msg ==> $msg');
+
+            // hpc_reportcard_url = data['hpc_reportcard_url'];
+            // print('hpc_reportcard_url  ${data['hpc_reportcard_url']}');
 
             // Checking for the graph (should be an integer check)
             if (data['graph'] == 1) {
@@ -209,21 +280,35 @@ class _ResultPageState extends State<ResultPage> {
 
             // Checking for the CBSE Report Card visibility
             if (data['cbse_reportcard'] == 1) {
-              setState(() {
-                cbseCardVisible = 1;
-                showCBSE = "Y";
-              });
-              print('CBSE Report Card is visible');
+              print('CBSE Report Card ${widget.cname}');
+
+              // Convert to int if cname might be string
+              int classNum = int.tryParse(widget.cname.toString()) ?? 0;
+
+              if (classNum >= 9 && classNum <= 11) {
+                setState(() {
+                  cbseCardVisible = 1;
+                  showCBSE = "Y";
+                });
+                print('✅ CBSE Report Card is visible for class $classNum');
+              } else {
+                setState(() {
+                  cbseCardVisible = 0;
+                  showCBSE = 'N';
+                });
+                print('⚠️ CBSE Report Card hidden (class below 9 or above 11)');
+              }
             } else {
               setState(() {
                 cbseCardVisible = 0;
                 showCBSE = 'N';
               });
-              print('CBSE Report Card is hidden');
+              print('❌ CBSE Report Card is disabled in API');
             }
 
             // Check if there are other fields like 'message1_url' and 'message2_url'
-            String message1Url = data['message1_url'] ?? ''; // Default to empty if null
+            String message1Url =
+                data['message1_url'] ?? ''; // Default to empty if null
             String message2Url = data['message2_url'] ?? '';
 
             print('message1 URL: $message1Url');
@@ -278,20 +363,20 @@ class _ResultPageState extends State<ResultPage> {
 //Set Validation herrrrrre
 
         if (results.isNotEmpty) {
-          String examName = results[0].examName; // Get the Exam_name
+          String examName = results[0].examName;
+
+          // Get the Exam_name
           print('Exam_name: $examName');
 
           if (examName == "Final exam" ||
               examName == "Term 1" ||
               examName == "Term 2") {
-            if (cbseCardVisible == 'Y' && widget.className == 9 || widget.className == 11) {
+            if (cbseCardVisible == 'Y' && widget.className == 9 ||
+                widget.className == 11) {
               CBSE_ReportCard();
 
-              if(CBSE_ReportCard() == 1){
-
-              } else {
-
-              }
+              if (CBSE_ReportCard() == 1) {
+              } else {}
             }
           }
         }
@@ -310,6 +395,25 @@ class _ResultPageState extends State<ResultPage> {
         isLoading = false;
       });
     }
+  }
+
+  String getDisplayMark(String obtained, String highest) {
+    final gradePattern = RegExp(r'^[A-Za-z]+$'); // Only letters = grade
+    final numericPattern = RegExp(r'^[0-9]+$'); // Only numbers = marks
+
+    if (obtained.isEmpty) {
+      return '';
+    }
+
+    if (gradePattern.hasMatch(obtained)) {
+      return obtained; // show only grade
+    }
+
+    if (numericPattern.hasMatch(obtained)) {
+      return '$obtained/$highest'; // show marks out of total
+    }
+
+    return obtained;
   }
 
   Future<void> CBSE_ReportCard() async {
@@ -353,6 +457,45 @@ class _ResultPageState extends State<ResultPage> {
     }
   }
 
+  Future<void> checkHpcReportCard() async {
+    final Uri apiUrl = Uri.parse(url + 'check_hpc_report_card');
+
+    try {
+      final response = await http.post(
+        apiUrl,
+        body: {
+          'student_id': widget.studentId,
+          'short_name': widget.shortName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        print('HPC API Response: ${response.body}');
+
+        int flag = data['flag'] ?? 0;
+        String reportUrl = data['hpc_reportcard_url'] ?? '';
+
+        setState(() {
+          hpc_reportcard_url = reportUrl;
+          hpcVisible = (flag == 1) ? 1 : 0; // ✅ independent visibility flag
+        });
+
+        if (flag == 1) {
+          print('✅ HPC Report Card Available');
+          print('📄 Download URL: $reportUrl');
+        } else {
+          print('❌ HPC Report Card Not Available');
+        }
+      } else {
+        print(
+            'Failed to fetch HPC report card. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching HPC report card: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isAnyCardVisible = cbseCardVisible == 1 ||
@@ -392,15 +535,69 @@ class _ResultPageState extends State<ResultPage> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
-                //     :ShowResult == 'N' ? Padding(
-                //   padding: const EdgeInsets.all(8.0),
-                //   child: Center(child: Text('Plase Pay pending fees to view marks and report card.',style: TextStyle(color: Colors.yellow,fontSize: 14),)),
-                // )
-                : examData.isEmpty
-                    ? Center(
-                        child: Container(
-                          margin: const EdgeInsets.all(10),
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      if (error_msg_flag == true)
+                        Center(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PaymentWebview(
+                                      regId: reg_id,
+                                      paymentUrlShare: paymentUrlShare,
+                                      receiptUrl: receiptUrl,
+                                      shortName: shortName,
+                                      academicYr: academic_yr,
+                                      receipt_button: receipt_button),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(8.0, 8, 8, 0),
+                              child: Card(
+                                color: Colors.yellow.shade600,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.currency_rupee_sharp),
+                                      SizedBox(width: 15),
+                                      Expanded(
+                                        child: Text(
+                                          error_msg,
+                                          softWrap: true,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      Icon(Icons.touch_app_outlined),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // ✅ 1️⃣ Always show HPC Card independently
+                      if (FeePendVisible==0 &&
+                          hpcVisible == 1 &&
+                          hpc_reportcard_url.isNotEmpty &&
+                          ["Nursery", "LKG", "UKG", "1", "2"]
+                              .contains(widget.cname))
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -409,171 +606,236 @@ class _ResultPageState extends State<ResultPage> {
                               BoxShadow(
                                 color: Colors.black26,
                                 blurRadius: 10,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Add emoji or animation here
-                              SizedBox(
-                                height: 150,
-                                width: 150,
-                                child: Image.asset(
-                                  'assets/animations/nodata.gif',
-                                  // Replace with your emoji or animation file
-                                  fit: BoxFit.contain,
+                              // Icon(Icons.picture_as_pdf,
+                              //     size: 50.sp, color: Colors.blueAccent),
+                              // const SizedBox(height: 8),
+                              // Text(
+                              //   "Holistic Report Card",
+                              //   style: TextStyle(
+                              //     fontSize: 14.sp,
+                              //     fontWeight: FontWeight.bold,
+                              //     color: Colors.black87,
+                              //   ),
+                              // ),
+                              // const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 10),
-                              // Add spacing between emoji and text
-                              Text(
-                                'No Result Available',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                                textAlign: TextAlign.center,
+                                icon: const Icon(Icons.download),
+                                label: const Text("Download HPC Report Card"),
+                                onPressed: () async {
+                                  print(
+                                      'Downloading HPC report from $hpc_reportcard_url');
+                                  String fullUrl =
+                                      "$hpc_reportcard_url?student_id=${widget.studentId}";
+                                  DateTime now = DateTime.now();
+                                  String date =
+                                      DateFormat('yyyy-MM-dd').format(now);
+                                  if (Platform.isAndroid) {
+                                    _permissionRequest();
+                                    await downloadFile(fullUrl, context,
+                                        'HPC_Report_${widget.Fname}_$date.pdf');
+                                  } else if (Platform.isIOS) {
+                                    await _downloadFileIOS(fullUrl, context,
+                                        'HPC_Report_${widget.Fname}_$date.pdf');
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           ),
                         ),
-                      )
-                    : Column(
-                        children: [
-                          if (isAnyCardVisible)
-                            GridView.count(
-                              shrinkWrap: true,
-                              // Let the grid take only the space it needs
-                              crossAxisCount: 3,
-                              // Display 3 cards in each row
-                              crossAxisSpacing: 7.w,
-                              // Space between columns
-                              mainAxisSpacing: 7.h,
-                              // Space between rows
-                              children: [
-                                if (cbseCardVisible == 1)
-                                  _buildCard('CBSE Report Card', Icons.school,
-                                      Colors.deepPurple, () {
-                                    // Handle CBSE Report Card tap
-                                    // _showToast("CBSE Report Card");
-                                    print('URL: $durl');
 
-                                    String url = "";
+                      if (cbseCardVisible == 1 || viewReportCardVisible == 1 || resultChartVisible == 1)
+                        GridView.count(
+                          shrinkWrap: true,
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 7.w,
+                          mainAxisSpacing: 7.h,
+                          children: [
+                            if (hpcVisible == 1 &&
+                                hpc_reportcard_url.isNotEmpty &&
+                                ["Nursery", "LKG", "UKG", "1", "2"]
+                                    .contains(widget.cname))
+                              _buildCard('Download HPC Report Card',
+                                  Icons.add_chart, Colors.lightBlueAccent, () {
+                                print(
+                                    'hpc_reportcard_url: $hpc_reportcard_url');
+                                String fullUrl = hpc_reportcard_url +
+                                    "?student_id=${widget.studentId}";
+                                print(
+                                    ' hpc_reportcard_url downloadUrl $fullUrl');
+                                DateTime now = DateTime.now();
+                                String date =
+                                    DateFormat('yyyy-MM-dd').format(now);
+                                // downloadFile(fullUrl, context,'HPC_RC_${widget.Fname + '-' + date}.pdf');
 
-                                    // switch ('9') {
-                                    //   case "9":
-                                    //     url = durl + "index.php/assessment/pdf_download_class9_cbseformat"
-                                    //         "?student_id=${'2444'}&class_id=${'25'}&login_type=P&acd_yr=${'2023-2024'}&short_name=${'91'}";
-                                    //     break;
-                                    //   case "11":
-                                    //     url = durl + "index.php/HSC/pdf_download_class11_cbseformat"
-                                    //         "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
-                                    //     break;
-                                    // }
+                                if (Platform.isAndroid) {
+                                  _permissionRequest();
+                                  downloadFile(fullUrl, context,
+                                      'HPC_Report_${widget.Fname}_$date.pdf');
+                                } else if (Platform.isIOS) {
+                                  _downloadFileIOS(fullUrl, context,
+                                      'HPC_Report_${widget.Fname}_$date.pdf');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to download file'),
+                                    ),
+                                  );
+                                }
+                              }),
+                            if (cbseCardVisible == 1)
+                              _buildCard('CBSE Report Card', Icons.school,
+                                  Colors.deepPurple, () {
+                                print('URL: $durl');
+                                String url = "";
+                                switch (widget.cname) {
+                                  case "9":
+                                    url = durl +
+                                        "index.php/assessment/pdf_download_class9_cbseformat"
+                                            "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
+                                    break;
+                                  case "11":
+                                    url = durl +
+                                        "index.php/HSC/pdf_download_class11_cbseformat"
+                                            "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
+                                    break;
+                                }
 
-                                    switch (widget.className) {
-                                      case "9":
-                                        url = durl +
-                                            "index.php/assessment/pdf_download_class9_cbseformat"
-                                                "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
-                                        break;
-                                      case "11":
-                                        url = durl +
-                                            "index.php/HSC/pdf_download_class11_cbseformat"
-                                                "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
-                                        break;
-                                    }
+                                DateTime now = DateTime.now();
+                                String date =
+                                    DateFormat('yyyy-MM-dd').format(now);
+                                // downloadFile(url, context, 'CBSE_RC_${widget.Fname + '-' + date}.pdf');
 
-                                    DateTime now = DateTime.now();
-                                    String date =
-                                        DateFormat('yyyy-MM-dd').format(now);
+                                if (Platform.isAndroid) {
+                                  _permissionRequest();
+                                  downloadFile(url, context,
+                                      'CBSE_RC_${widget.Fname + '-' + date}.pdf');
+                                } else if (Platform.isIOS) {
+                                  _downloadFileIOS(url, context,
+                                      'CBSE_RC_${widget.Fname + '-' + date}.pdf');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to download file'),
+                                    ),
+                                  );
+                                }
+                              }),
+                            if (viewReportCardVisible == 1)
+                              _buildCard('View Report Card',
+                                  Icons.insert_drive_file, Colors.teal, () {
+                                String resultUrl = durl +
+                                    "index.php/assessment/pdf_download" +
+                                    "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&" +
+                                    "acd_yr=${widget.academicYr}&short_name=${widget.shortName}";
+                                DateTime now = DateTime.now();
+                                String date =
+                                    DateFormat('yyyy-MM-dd').format(now);
+                                // downloadFile(resultUrl, context, 'RC_${widget.Fname + '-' + date}.pdf');
 
-                                    downloadFile(url, context,
-                                        'CBSE_RC_${widget.Fname + '-' + date}.pdf');
-                                    print(' resultUrl downloadUrl $url');
-                                  }),
-                                if (viewReportCardVisible == 1)
-                                  _buildCard('View Report Card',
-                                      Icons.insert_drive_file, Colors.teal, () {
-                                    // Handle View Report Card tap
-
-                                    String resultUrl = "";
-
-                                    // resultUrl = durl + "index.php/assessment/pdf_download" +
-                                    //     "?student_id=" + '2444' + "&class_id=" + '25' + "&login_type=P&" + "acd_yr=" + '2023-2024' + "&short_name=" + shortName;
-
-                                    resultUrl = durl +
-                                        "index.php/assessment/pdf_download" +
-                                        "?student_id=${widget.studentId}&class_id=${widget.classId}&login_type=P&" +
-                                        "acd_yr=${widget.academicYr}&short_name=" +
-                                        shortName;
-
-                                    DateTime now = DateTime.now();
-                                    String date =
-                                        DateFormat('yyyy-MM-dd').format(now);
-
-                                    downloadFile(resultUrl, context,
-                                        'RC_${widget.Fname + '-' + date}.pdf');
-                                    print('downloadUrl $resultUrl');
-
-                                    print('cbseCardVisible: $cbseCardVisible');
-                                    print(
-                                        'viewReportCardVisible: $viewReportCardVisible');
-                                    print(
-                                        'resultChartVisible: $resultChartVisible');
-                                  }),
-                                if (resultChartVisible == 1)
-                                  _buildCard('Result Chart', Icons.bar_chart,
-                                      Colors.orange, () {
-                                    // Handle Result Chart tap
-
-                                    print('cbseCardVisible: $cbseCardVisible');
-                                    print(
-                                        'viewReportCardVisible: $viewReportCardVisible');
-                                    print(
-                                        'resultChartVisible: $resultChartVisible');
-
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ResultChart(
-                                            studentId: widget.studentId,
-                                            shortName: shortName,
-                                            academicYr: academic_yr,
-                                            classId: widget.classId,
-                                            secId: widget.secId,
-                                            className: widget.className),
-                                      ),
-                                    );
-                                  }),
-                              ],
-                            ),
-
-                          // Add some spacing and divider
-                          const SizedBox(height: 7),
-
-                          // Expanded list of exam results below the cards
-
-                          Expanded(
-                            flex: 6,
-                            // Adjusts the space allocated for the exam results list
-                            child: ListView.builder(
-                              padding: EdgeInsets.all(6),
-                              itemCount: examData.length,
-                              itemBuilder: (context, index) {
-                                final exam = examData[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16.0),
-                                  child: _buildExpandableCard(exam),
+                                if (Platform.isAndroid) {
+                                  _permissionRequest();
+                                  downloadFile(resultUrl, context,
+                                      'RC_${widget.Fname + '-' + date}.pdf');
+                                } else if (Platform.isIOS) {
+                                  _downloadFileIOS(resultUrl, context,
+                                      'RC_${widget.Fname + '-' + date}.pdf');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to download file'),
+                                    ),
+                                  );
+                                }
+                              }),
+                            if (resultChartVisible == 1)
+                              _buildCard('View Result Chart', Icons.bar_chart,
+                                  Colors.orange, () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResultChart(
+                                      studentId: widget.studentId,
+                                      shortName: widget.shortName,
+                                      academicYr: widget.academicYr,
+                                      classId: widget.classId,
+                                      secId: widget.secId,
+                                      className: widget.className,
+                                    ),
+                                  ),
                                 );
-                              },
-                            ),
-                          ),
-                        ],
+                              }),
+                          ],
+                        ),
+
+                      const SizedBox(height: 7),
+
+                      Expanded(
+                        flex: 6,
+                        child: examData.isEmpty
+                            ? (error_msg_flag == true
+                                ? SizedBox
+                                    .shrink()
+                                : Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          height: 150,
+                                          width: 150,
+                                          child: Image.asset(
+                                            'assets/animations/nodata.gif',
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          'No Exam Result Available',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ))
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(6),
+                                itemCount: examData.length,
+                                itemBuilder: (context, index) {
+                                  final exam = examData[index];
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 16.0),
+                                    child: _buildExpandableCard(exam),
+                                  );
+                                },
+                              ),
                       ),
+                    ],
+                  ),
           ),
         ),
       ),
@@ -601,6 +863,70 @@ class _ResultPageState extends State<ResultPage> {
       platformChannelSpecifics,
       payload: filePath, // Pass the file path as payload
     );
+  }
+
+  static Future<bool> _permissionRequest() async {
+    PermissionStatus result = await Permission.storage.request();
+    return result.isGranted;
+  }
+
+  Future<void> _downloadFileIOS(
+      String url, BuildContext context, String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    // Construct the full path for the downloaded file
+    final filePath = '${directory.path}/$fileName';
+    final file = File(filePath);
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+
+        await flutterLocalNotificationsPlugin.show(
+          0,
+          'Download Complete',
+          'File saved to $filePath',
+          platformChannelSpecifics,
+          payload: filePath, // Pass the file path as payload
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'File Download Successfully. \n Find it in the Files/On My iPhone/EvolvU Smart School - Parent.'),
+          ),
+        );
+      } else {}
+    } catch (e) {
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file: $e'),
+        ),
+      );
+    }
   }
 
   Future<void> downloadFile(
@@ -674,7 +1000,7 @@ class _ResultPageState extends State<ResultPage> {
       String title, IconData icon, Color color, VoidCallback onTap) {
     return FractionallySizedBox(
       widthFactor: 1, // Full width of the grid item
-      heightFactor: 0.80, // Reduce the height of the card
+      heightFactor: 0.90, // Reduce the height of the card
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -718,8 +1044,11 @@ class _ResultPageState extends State<ResultPage> {
       child: ExpansionTile(
         title: Text(exam.examName),
         children: exam.details.map((detail) {
-          return _buildResultRow(detail.subject, detail.markHeadings,
-              '${detail.marksObtained}/${detail.highestMarks}');
+          return _buildResultRow(
+            detail.subject,
+            detail.markHeadings,
+            getDisplayMark(detail.marksObtained, detail.highestMarks),
+          );
         }).toList(),
       ),
     );
@@ -728,18 +1057,18 @@ class _ResultPageState extends State<ResultPage> {
   // Function to build each result row dynamically
   Widget _buildResultRow(String subject, String test, String score) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Subject Column with fixed width
           SizedBox(
-            width: 80.w, // Fixed width for subject text
+            width: 90.w, // Fixed width for subject text
             child: Text(
               subject,
               style: TextStyle(color: Color.fromARGB(255, 34, 28, 28)),
               textAlign: TextAlign.left, // Align text to the left
-              overflow: TextOverflow.ellipsis, // Handle long text
+              // overflow: TextOverflow.ellipsis, // Handle long text
             ),
           ),
           Expanded(

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:marquee/marquee.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -43,11 +44,65 @@ class _StudentCardState extends State<StudentCard> {
   String academicYrCard = "";
   String regId = "";
   List<Map<String, dynamic>> examData = [];
-
+  String localAndroidVersion ='';
   bool isBirthdayToday = false;
   List<String> birthdayStudentNames = [];
 
   List<dynamic> newsData = [];
+  Set<int> viewedNewsIds = {}; // Track viewed news by index or unique ID
+  int unviewedCount = 0;
+
+  Future<void> loadViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = prefs.getString('viewed_news_ids') ?? '';
+    if (viewedIdsString.isNotEmpty) {
+      viewedNewsIds = viewedIdsString.split(',').map((id) => int.parse(id)).toSet();
+    }
+    calculateUnviewedCount();
+  }
+
+  Future<void> saveViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewedIdsString = viewedNewsIds.join(',');
+    await prefs.setString('viewed_news_ids', viewedIdsString);
+  }
+
+// Calculate unviewed count
+  void calculateUnviewedCount() {
+    int count = 0;
+    for (int i = 0; i < newsData.length; i++) {
+      // Assuming each news item has a unique 'id' field
+      // If not, you can use index or another unique identifier
+      final newsId = newsData[i]['id'] ?? i; // Use index as fallback
+      if (!viewedNewsIds.contains(newsId)) {
+        count++;
+      }
+    }
+    setState(() {
+      unviewedCount = count;
+    });
+  }
+
+  void markAllAsViewed() {
+    for (int i = 0; i < newsData.length; i++) {
+      final newsId = newsData[i]['id'] ?? i;
+      viewedNewsIds.add(newsId);
+    }
+    saveViewedNews();
+    setState(() {
+      unviewedCount = 0;
+    });
+  }
+
+  void markAsViewed(int index) {
+    final newsId = newsData[index]['id'] ?? index;
+    if (!viewedNewsIds.contains(newsId)) {
+      viewedNewsIds.add(newsId);
+      saveViewedNews();
+      calculateUnviewedCount();
+    }
+  }
+
   List<dynamic> EvolvUData = [];
   List<Map<String, dynamic>> importantLinks = [];
   bool isLoading = true;
@@ -112,6 +167,8 @@ class _StudentCardState extends State<StudentCard> {
   }
 
   Future<void> _getSchoolInfo(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    localAndroidVersion = packageInfo.version;
     final academicYearProvider =
         Provider.of<AcademicYearProvider>(context, listen: false);
 
@@ -220,9 +277,8 @@ class _StudentCardState extends State<StudentCard> {
   }
 
   Future<void> getSchoolNews(String url) async {
-    final getSchoolNewsurl = Uri.parse(
-        url + 'get_news'); // Assuming Config.newLogin is your base URL
-    final body = {'short_name': shortName}; // Add required parameters
+    final getSchoolNewsurl = Uri.parse(url + 'get_news');
+    final body = {'short_name': shortName};
     print('getSchoolNews => $getSchoolNewsurl');
 
     try {
@@ -231,9 +287,16 @@ class _StudentCardState extends State<StudentCard> {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Load viewed news before updating state
+        await loadViewedNews();
+
         setState(() {
           newsData = jsonData;
         });
+
+        // Recalculate unviewed count with new data
+        calculateUnviewedCount();
       } else {
         print('getSchoolNews Error Response: ${response.statusCode}');
       }
@@ -249,6 +312,7 @@ class _StudentCardState extends State<StudentCard> {
     try {
       final response = await http.post(get_evolvu_updatesurl, body: body);
       print('get_evolvu_updates => ${response.statusCode}');
+      print('get_evolvu_updates body=> $url${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
@@ -304,7 +368,9 @@ class _StudentCardState extends State<StudentCard> {
   }
 
   Future<void> fetchDashboardData(String url) async {
+
     final url1 = Uri.parse(url + 'show_icons_parentdashboard_apk');
+
     // print('Receipt URL: $shortName');
 
     try {
@@ -506,6 +572,40 @@ class _StudentCardState extends State<StudentCard> {
             else
               ListView(
                 children: [
+
+                  if(_isVersionGreater(androidVersion, localAndroidVersion))
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        // Open the URL when tapped
+                        _launchURL();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8.0,8,8,0),
+                        child: Card(
+                          color: Colors.yellow.shade600,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.crisis_alert),
+                                SizedBox(width: 10,),
+                                Text("You have newer version of the app to \n Download. ",),
+                                SizedBox(width: 10,),
+                                Icon(Icons.touch_app_outlined),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+
                   if (showNoDataMessage == true || academicYrCard != widget.acd) academicCard(),
                   ListView.builder(
                     shrinkWrap: true,
@@ -580,7 +680,38 @@ class _StudentCardState extends State<StudentCard> {
       ),
     );
   }
+  _launchURL() async {
+    const url = 'https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool';
 
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  bool _isVersionGreater(String newVersion, String currentVersion) {
+    // Split version strings into parts
+    // String lat = '1.0.1';
+    List<int> newParts = newVersion.split('.').map((e) => int.parse(e)).toList();
+    List<int> currentParts = currentVersion.split('.').map((e) => int.parse(e)).toList();
+
+    // Compare each part of the version
+    for (int i = 0; i < newParts.length; i++) {
+      if (i >= currentParts.length) {
+        // If current version has fewer parts, new version is greater
+        return true;
+      }
+      if (newParts[i] > currentParts[i]) {
+        return true;
+      } else if (newParts[i] < currentParts[i]) {
+        return false;
+      }
+    }
+
+    // If all parts are equal, new version is not greater
+    return false;
+  }
   Widget _buildMessageCard(String message) {
     print('msgggggg $_message');
     if (message.isEmpty) return Container();
@@ -1177,19 +1308,23 @@ class _StudentCardState extends State<StudentCard> {
         children: [
           GestureDetector(
             onTap: () {
+              // Mark all as viewed when opening the dialog
+              markAllAsViewed();
+
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
                     title: Center(
-                        child: Text(
-                      'Newsletter',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                      child: Text(
+                        'Newsletter',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                    )),
+                    ),
                     content: SizedBox(
                       height: 200,
                       width: double.maxFinite,
@@ -1199,6 +1334,8 @@ class _StudentCardState extends State<StudentCard> {
                           children: List.generate(newsData.length, (index) {
                             return GestureDetector(
                               onTap: () {
+                                // Mark this specific news as viewed
+                                markAsViewed(index);
                                 _showDetailedNewsDialog(index);
                               },
                               child: Padding(
@@ -1222,15 +1359,54 @@ class _StudentCardState extends State<StudentCard> {
                 },
               );
             },
-            child: _buildInteractiveCard(
-              Icons.email,
-              'Open Newsletter',
-              Colors.red,
+            child: Stack(
+              children: [
+                _buildInteractiveCard(
+                  Icons.email,
+                  'Open Newsletter',
+                  Colors.red,
+                ),
+                // Add badge for unviewed count
+                if (unviewedCount > 0)
+                  Positioned(
+                    top: 17,
+                    right: 15,
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 25,
+                        minHeight: 25,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unviewedCount > 99 ? '99+' : unviewedCount.toString(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+// Optional: Add method to reset viewed status (for testing)
+  Future<void> resetViewedNews() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('viewed_news_ids');
+    viewedNewsIds.clear();
+    calculateUnviewedCount();
   }
 
   Widget _buildNewsPreviewCard(int index) {
@@ -1966,9 +2142,7 @@ class _StudentCardItemState extends State<StudentCardItem> {
                     SizedBox.square(
                       dimension: 60.w,
                       child: Image.asset(
-                        widget.gender == 'F'
-                            ? 'assets/girl.png'
-                            : 'assets/boy.png',
+                        widget.gender == 'M' ? 'assets/boy.png' : 'assets/girl.png',
                       ),
                     ),
                   ],

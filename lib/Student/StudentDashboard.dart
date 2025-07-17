@@ -25,6 +25,8 @@ import '../Notice_SMS/notice_notePage.dart';
 import '../QR/QR_Code.dart';
 import '../ResultChart.dart';
 import '../Utils&Config/api.dart';
+import '../WebViewScreens/FeedbackWebview.dart';
+import '../WebViewScreens/LMS.dart';
 import '../WebViewScreens/OnlineFeesPayment.dart';
 import '../WebViewScreens/SmartChat_WebView.dart';
 import '../common/rotatedDivider_Card.dart';
@@ -113,9 +115,12 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
   String paymentUrl="";
   String paymentUrlShare="";
   String smartchat_url="";
+  String past_que_papers_url="";
+  int past_que_papers =0;
   int receipt_button=0;
   int online_fees_payment=0;
   int smartchat=0;
+  int feedbackIcon=0;
   String encryptedUsername="";
 
   int pageIndex = 0;
@@ -224,7 +229,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
       List<dynamic> apiResponse = json.decode(response.body);
       if (apiResponse.isNotEmpty) {
         Map<String, dynamic> firstStudent = apiResponse[0];
-         Fname = firstStudent['first_name'];
+        Fname = firstStudent['first_name'];
         print('Fname: $Fname');
       } else {
         print('No data found in API response.');
@@ -249,13 +254,13 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
       Map<String, dynamic> responseData = json.decode(get_student_profile_images_details.body);
       imageUrl = responseData['image_url'];
       print('Image URL: $imageUrl');
-    if (imageUrl.hashCode == 404) {
-      print('Image not found, using default image.');
-      imageUrl = ""; // or set a default image URL if available
-    } else {
-      print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
+      if (imageUrl.hashCode == 404) {
+        print('Image not found, using default image.');
+        imageUrl = ""; // or set a default image URL if available
+      } else {
+        print('Error fetching image details: ${get_student_profile_images_details.statusCode}');
+      }
     }
-  }
   }
 
   Future<void> fetchDashboardData() async {
@@ -277,9 +282,12 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         receiptButton = data['receipt_button'];
         receipt_button = data['receipt_button'];
         smartchat = data['smartchat'];
+        feedbackIcon = data['parent_observation'];
         online_fees_payment = data['online_fees_payment'];
         paymentUrl = data['payment_url'];
         smartchat_url = data['smartchat_url'];
+        past_que_papers  = data['past_que_papers'];
+        past_que_papers_url  = data['past_que_papers_url'];
         String ALLOWED_URI_CHARS = "@#&=*+-_.,:!?()/~'%";
 
         String URi_username = customUriEncode(username, ALLOWED_URI_CHARS);
@@ -300,6 +308,8 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         print('Receipt Button: $receiptButton');
         print('Payment URL: $paymentUrl');
         print('smartchat_url : $smartchat_url');
+        print('past_que_papers  : $past_que_papers ');
+        print('past_que_papers_url  : $past_que_papers_url ');
 
         // You can store these values in variables or use them directly
       } else {
@@ -471,20 +481,20 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     final List<CardItem> cardItems = [
 
       if(academicYearProvider.academic_yr == widget.academicYr)
-      CardItem(
-        imagePath: widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png', // Local fallback image
-        title: 'Student Profile',
-        onTap: (context) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentProfilePage(studentId: widget.studentId,shortName: shortName,cname: widget.cname,
-                secname: widget.secname,academic_yr: academic_yr
-                ,),
-            ),
-          );
-        },
-      ),
+        CardItem(
+          imagePath: widget.gender == 'F' ? 'assets/girl.png' : 'assets/boy.png', // Local fallback image
+          title: 'Student Profile',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StudentProfilePage(studentId: widget.studentId,shortName: shortName,cname: widget.cname,
+                  secname: widget.secname,academic_yr: academic_yr
+                  ,),
+              ),
+            );
+          },
+        ),
       CardItem(
         imagePath: 'assets/teacher.png',
         title: 'Teacher Note',
@@ -517,7 +527,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         title: 'Homework',
         onTap: (context) async {
           final result = await Navigator.push(
-              context,
+            context,
             MaterialPageRoute(
               builder: (context) => HomeWorkNotePage(studentId: widget.studentId,shortName: shortName,academic_yr: academic_yr
                   ,classId: widget.classId,secId:widget.secId),
@@ -567,19 +577,8 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
         showBadgenotice: true,
       ),
-      // CardItem(
-      //   imagePath: 'assets/calendar.png',
-      //   title: 'Attendance',
-      //   onTap: (context) {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(
-      //         builder: (context) => AttendancePage(),
-      //       ),
-      //     );
-      //     },
-      //   showBadgenotice: true,
-      // ),
+
+
 
       CardItem(
         imagePath: 'assets/calendar.png',
@@ -853,21 +852,6 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
-      if(smartchat == 1)
-      CardItem(
-        imagePath: 'assets/smartchat.png',
-        title: 'Smart Chat',
-        onTap: (context) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WebViewPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
-                  ,classId: widget.classId,secId:widget.secId,smartchat_url:smartchat_url),
-            ),
-          );
-        },
-      ),
-
       CardItem(
         imagePath: 'assets/result.png',
         title: 'Result',
@@ -876,11 +860,29 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
             context,
             MaterialPageRoute(
               builder: (context) => ResultPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
-                  ,classId: widget.classId,secId:widget.secId,Fname: Fname,className: widget.className),
+                  ,classId: widget.classId,secId:widget.secId,Fname: Fname,className: widget.className, cname: widget.cname,),
             ),
           );
         },
       ),
+
+
+      if(smartchat == 1)
+        CardItem(
+          imagePath: 'assets/smartchat.png',
+          title: 'Smart Chat',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WebViewPage(studentId: widget.studentId,shortName: shortName,academicYr: academic_yr
+                    ,classId: widget.classId,secId:widget.secId,smartchat_url:smartchat_url),
+              ),
+            );
+          },
+        ),
+
+
 
       CardItem(
         imagePath: 'assets/chart.png',
@@ -896,20 +898,51 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
         },
       ),
 
-      if(online_fees_payment == 1)
+      if(academicYearProvider.academic_yr == widget.academicYr && online_fees_payment == 1)
+        CardItem(
+          imagePath: 'assets/cashpayment.png',
+          title: 'Fees Payment',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentWebview(
+                    regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr,receipt_button:receipt_button),
+              ),
+            );
+          },
+        ),
+
+
+      if(past_que_papers == 1)
       CardItem(
-        imagePath: 'assets/cashpayment.png',
-        title: 'Fees Payment',
+        imagePath: 'assets/lms.png',
+        title: 'Past question \n      papers',
         onTap: (context) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PaymentWebview(
-                  regId: widget.reg_id,paymentUrlShare:paymentUrlShare,receiptUrl:receiptUrl,shortName: shortName,academicYr: academic_yr,receipt_button:receipt_button),
+              builder: (context) => LMSWebViewScreen(studentId: widget.studentId,past_que_papers_url: past_que_papers_url),
             ),
           );
         },
       ),
+
+      if(feedbackIcon == 1 && ["Nursery", "LKG", "UKG", "1", "2"].contains(widget.cname))
+        CardItem(
+          imagePath: 'assets/parents.png',
+          title: '    Parent\n Observation',
+          onTap: (context) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ParentFeedbackPage(studentId: widget.studentId,regId: widget.reg_id,academicYr: widget.academicYr,),
+              ),
+            );
+          },
+          showBadgenotice: false,
+        ),
+
       // CardItem(
       //   imagePath: 'assets/new_module.png', // Path to the new module image
       //   title: 'New Module',
@@ -959,7 +992,7 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                         Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 0.h),
 
                           child: Card(
@@ -1075,115 +1108,116 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
                             final item = cardItems[index];
                             return Card(
                               color: Colors.white,
-                                child: Stack(
+                              child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                InkWell(
-                                  onTap: () => item.onTap(context),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (item.title == 'Attendance')
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: widget.attendance_perc.isNotEmpty && double.tryParse(widget.attendance_perc) != null
-                                              ? CircularAttendanceIndicator(
-                                            percentage: double.parse(widget.attendance_perc) / 100, // Pass percentage as a fraction (0 to 1)
+                                  InkWell(
+                                    onTap: () => item.onTap(context),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        if (item.title == 'Attendance')
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 8.0),
+                                            child: widget.attendance_perc.isNotEmpty && double.tryParse(widget.attendance_perc) != null
+                                                ? CircularAttendanceIndicator(
+                                              percentage: double.parse(widget.attendance_perc) / 100, // Pass percentage as a fraction (0 to 1)
+                                            )
+                                                : CircularAttendanceIndicator(
+                                              percentage: 0, // Default to 0 if data is not available
+                                            ),
                                           )
-                                              : CircularAttendanceIndicator(
-                                            percentage: 0, // Default to 0 if data is not available
-                                          ),
-                                        )
                                         // [{"absent_date":"11-09-2024"}]
-                                      else
-                                      Image.asset(
-                                        item.imagePath,
-                                        height: 50,
-                                      ),
-                                      SizedBox(height: 10),
-                                      Text(
-                                        item.title,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 12.sp,
-                                        ),
-                                      ),
-                                    ],
+                                        else
+                                          Image.asset(
+                                            item.imagePath,
+                                            height: 50,
+                                          ),
+                                        SizedBox(height: 8),
+                                         Text(
+                                            item.title,
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 12.sp,
+                                            ),
+                                          ),
+
+                                      ],
+                                    ),
                                   ),
-                                ),
                                   if (item.showBadge) // Conditionally show the badge
-                                  if (unreadCount != 0) // Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$unreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                    if (unreadCount != 0) // Conditionally show the badge
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$unreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
                                   if (item.showBadgenotice)
                                     if (noticeunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$noticeunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$noticeunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
                                   if (item.showBadgeTnote)
                                     if (TnoteunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$TnoteunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$TnoteunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ), if (item.showBadgeRemark)
+                                      ), if (item.showBadgeRemark)
                                     if (ReamrkunreadCount != 0)// Conditionally show the badge
-                                    Positioned(
-                                      top: 1,
-                                      right: 6,
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundColor: Colors.red,
-                                        child: Text(
-                                          '$ReamrkunreadCount',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 1,
+                                        right: 6,
+                                        child: CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: Colors.red,
+                                          child: Text(
+                                            '$ReamrkunreadCount',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                              ],
-                                ),
+                                ],
+                              ),
                             );
                           }),
                         ),
@@ -1210,30 +1244,32 @@ class _StudentActivityPageState extends State<StudentActivityPage> {
     return name; // If there's no second space, return the original name
   }
 
-Container buildMyNavBar(BuildContext context) {
-  return Container(
-    margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
-        _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
-        _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
-        _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
-      ],
-    ),
-  );
-}
+  SafeArea buildMyNavBar(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0),
+            _buildNavItem(icon: Icons.calendar_month, label: 'Events', index: 1),
+            _buildNavItem(icon: Icons.person, label: 'Profile',index: 2), // Center icon for Profile
+            _buildNavItem(icon: Icons.qr_code, label: 'QR', index: 4),
+          ],
+        ),
+      ),
+    );
+  }
 
-Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
     bool isSelected = pageIndex == index;
 
     return GestureDetector(

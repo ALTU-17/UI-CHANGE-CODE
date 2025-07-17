@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -27,33 +28,45 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
   bool _isLoading = true; // Add a state variable for loading
-
+  Future<String?> getLaravelToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_token');
+  }
   @override
   void initState() {
     super.initState();
 
-    print("WEBVIEW URL: " +
-        widget.smartchat_url +
-        '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}');
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+    final url = Uri.parse(widget.smartchat_url).replace(
+      queryParameters: {
+        'student_id': widget.studentId,
+        'academic_yr': widget.academicYr,
+        '_t': timestamp.toString(),
+      },
+    );
+
+    print("WEBVIEW URL: $url");
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
-            setState(() {
-              _isLoading = true; // Show loading indicator when page starts loading
-            });
+            setState(() => _isLoading = true);
           },
           onPageFinished: (url) {
-            setState(() {
-              _isLoading = false; // Hide loading indicator when page finishes loading
-            });
+            setState(() => _isLoading = false);
           },
         ),
       )
-      ..loadRequest(Uri.parse(widget.smartchat_url +
-          '?student_id=${widget.studentId}&academic_yr=${widget.academicYr}'));
+      ..loadRequest(
+        url,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      );
   }
 
   @override

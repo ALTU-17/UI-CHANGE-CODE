@@ -86,7 +86,7 @@ class _HomeWorkNotePage extends State<HomeWorkNotePage> {
       }
 
       try {
-        List jsonResponse = json.decode(response.body);
+        List jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
         return jsonResponse.map((homework) => Homework.fromJson(homework)).toList();
       } catch (e) {
         throw Exception('Error parsing JSON: $e');

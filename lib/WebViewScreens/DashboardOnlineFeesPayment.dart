@@ -1,20 +1,21 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'package:evolvu/AcademicYearProvider.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../main.dart';
 import 'FeesReceiptWebViewScreen.dart';
 
 class Dashboardonlinefeespayment extends StatefulWidget {
@@ -26,7 +27,8 @@ class Dashboardonlinefeespayment extends StatefulWidget {
   final String academicYr;
   final int receipt_button;
 
-  Dashboardonlinefeespayment({super.key,
+  const Dashboardonlinefeespayment({
+    super.key,
     required this.regId,
     required this.paymentUrlShare,
     required this.receiptUrl,
@@ -47,88 +49,531 @@ class _PaymentWebviewState extends State<Dashboardonlinefeespayment> {
   String? name;
   String? newUrl;
   String? dUrl;
+  bool _isDownloading = false;
+
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize controller first — no late crash anymore
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) {
+            log("✅ Page loaded: $url");
+          },
+          onWebResourceError: (WebResourceError error) {
+            log("❌ WebView error: ${error.description}");
+            // Optionally show error to user
+            _controller.loadHtmlString('''
+        <html>
+          <body style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+            <div style="text-align: center; color: #666;">
+              <h3>Failed to load page</h3>
+              <p>${error.description}</p>
+              <p>Please check your internet connection</p>
+            </div>
+          </body>
+        </html>
+      ''');
+          },
+          onHttpError: (HttpResponseError error) {
+            // log("❌ HTTP error: ${error.statusCode}");
+          },
+          onNavigationRequest: (NavigationRequest request) async {
+            final url = request.url;
+
+            // Handle UPI Intent
+            if (url.startsWith("upi://pay")) {
+              print("🔍 Detected UPI intent URL: $url");
+              _launchUPIIntent(url);
+              return NavigationDecision.prevent;
+            }
+
+            // Normal Download Flow
+            if (url.endsWith(".pdf") || url.contains("/download_receipt")) {
+              if (Platform.isAndroid) {
+                _downloadFile(url);
+              } else if (Platform.isIOS) {
+                _downloadFileIOS(url);
+              }
+              return NavigationDecision.prevent;
+            }
+
+            return NavigationDecision.navigate;
+          },
+
+        ),
+      );
+
+    // Load data async (prefs + URL)
     _initializeData();
-    // _setupDownloader();
+  }
+
+  Future<void> _launchUPIIntent(String url) async {
+    try {
+      final uri = Uri.parse(url);
+
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Unable to open UPI app"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<String?> _fetchAcademicYear() async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(url+'get_academic_year'),
+      );
+      request.fields['short_name'] = widget.shortName;
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('get_academic_year body: ${response.body}');
+
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty && data[0]['academic_yr'] != null) {
+          return data[0]['academic_yr'].toString();
+        }
+      }
+    } catch (e) {
+      log("Error fetching academic year: $e");
+    }
+    return null;
   }
 
   Future<void> _initializeData() async {
-    prefs = await SharedPreferences.getInstance();
-    name = prefs.getString('name');
-    newUrl = prefs.getString('newUrl');
-    dUrl = prefs.getString('project_url');
+    try {
+      prefs = await SharedPreferences.getInstance();
+      name = prefs.getString('name');
+      newUrl = prefs.getString('newUrl');
+      dUrl = prefs.getString('project_url');
 
-    // paymentUrl = "http://holyspiritconvent.evolvu.in/test/hscs_test/index.php/worldline/WL_online_payment_req_apk/?reg_id=1039&academic_yr=2024-2025&user_id=8421853656&encryptedUsername=a34dca3f54ec276c214d5a423c537af101cc67b7&short_name=HSCS";
+      String finalPaymentUrl = widget.paymentUrlShare;
 
-    print('Loading URL: ${widget.paymentUrlShare}');
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(widget.paymentUrlShare));
+      // Check if academic_yr is null or empty in the URL
+      final uri = Uri.tryParse(widget.paymentUrlShare);
+      final academicYrInUrl = uri?.queryParameters['academic_yr'];
+
+      if (academicYrInUrl == null || academicYrInUrl.isEmpty) {
+        log("⚠️ academic_yr is null/empty in URL, fetching from API...");
+
+        final fetchedAcademicYr = await _fetchAcademicYear();
+
+        if (fetchedAcademicYr != null && fetchedAcademicYr.isNotEmpty) {
+          log("✅ Fetched academic_yr: $fetchedAcademicYr");
+
+          final updatedUri = uri!.replace(
+            queryParameters: {
+              ...uri.queryParameters,
+              'academic_yr': fetchedAcademicYr,
+            },
+          );
+          finalPaymentUrl = updatedUri.toString();
+          log("🔗 Updated URL: $finalPaymentUrl");
+        } else {
+          _showErrorInWebView("Could not fetch academic year");
+          setState(() {});
+          return;
+        }
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final baseUri = Uri.tryParse(finalPaymentUrl);
+      if (baseUri != null) {
+        finalPaymentUrl = baseUri.replace(
+          queryParameters: {
+            ...baseUri.queryParameters,
+            '_t': timestamp.toString(),
+          },
+        ).toString();
+        log("🕐 Final URL with timestamp: $finalPaymentUrl");
+      }
+
+      // Load the final URL
+      if (finalPaymentUrl.isNotEmpty) {
+        final finalUri = Uri.tryParse(finalPaymentUrl);
+        print('finalUri body: $finalUri');
+
+        if (finalUri != null && finalUri.hasScheme) {
+          await _controller.loadRequest(
+            finalUri,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            },
+          );
+        } else {
+          String fixedUrl = finalPaymentUrl;
+          if (!fixedUrl.startsWith('http')) {
+            fixedUrl = 'https://$fixedUrl';
+          }
+          final fixedUri = Uri.tryParse(fixedUrl);
+          if (fixedUri != null && fixedUri.hasScheme) {
+            await _controller.loadRequest(fixedUri);
+          } else {
+            _showErrorInWebView("Invalid payment URL");
+          }
+        }
+      } else {
+        _showErrorInWebView("Payment URL is empty");
+      }
+    } catch (e) {
+      log("Error in _initializeData: $e");
+      _showErrorInWebView("Failed to load payment page");
+    }
 
     setState(() {});
   }
 
 
+  void _showErrorInWebView(String message) {
+    _controller.loadHtmlString('''
+    <html>
+      <body style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial; text-align: center;">
+        <div>
+          <h3 style="color: #666;">Unable to load payment page</h3>
+          <p style="color: #999;">$message</p>
+          <p style="color: #999;">Please contact support</p>
+        </div>
+      </body>
+    </html>
+  ''');
+  }
+
+  @override
   Widget build(BuildContext context) {
     final academicYearProvider = Provider.of<AcademicYearProvider>(context);
     bool isAcademicYearMatch = academicYearProvider.academic_yr == widget.academicYr;
-
-    return Scaffold( // Use Scaffold here
+    return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         toolbarHeight: 80.h,
         title: Text(
-          'Fees Payment $academic_yr',
-          style: TextStyle(fontSize: 18.sp, color: Colors.white),
+          'Fees Payment $academic_yrShow',
+          style: TextStyle(fontSize: 20.sp, color: Colors.white),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 100.h),
-            if(academicYearProvider.academic_yr == academic_yr)
-            Expanded(
-              child: WebViewWidget(controller: _controller),
-            ) else Expanded(
-            child: ReceiptWebViewScreenVali(
-            receiptUrl: widget.receiptUrl +
-            '?reg_id=${widget.regId}&academic_yr=${widget.academicYr}&short_name=${widget.shortName}',
-            ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: isAcademicYearMatch
-          ? FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ReceiptWebViewScreen(
-                receiptUrl: widget.receiptUrl +
-                    '?reg_id=${widget.regId}&academic_yr=${widget.academicYr}&short_name=${widget.shortName}',
+      body: Stack(
+        children: [
+          // Background & WebView
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.pink, Colors.blue],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          );
-        },
-        icon: const Icon(Icons.receipt, color: Colors.black),
-        label: const Text("Receipt"),
-        backgroundColor: Colors.blue.shade400,
-      )
-          : null, // Hide the button when the condition is false
+            child: Column(
+              children: [
+                SizedBox(height: 160.h),
+                Expanded(
+                  child: academic_yrShow == widget.academicYr
+                      ? WebViewWidget(controller: _controller)
+                      :
+                  Align(
+                    alignment: Alignment(
+                        0, 0.9), // X: 0 = center, Y: 0.7 = slightly above bottom
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 20.w,vertical: 10),
+                      padding: EdgeInsets.all(10.h),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.shade100.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.orange),
+                      ),
+
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.orange, size: 20.sp),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Please go to current academic year   \n                for Fees Payment.',
+
+                            // 'Please wait this page will update\n'
+                            // 'once the transaction is complete.',
+                            textAlign: TextAlign.left,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),                  // ReceiptWebViewScreenVali(
+                  //   receiptUrl: '${widget.receiptUrl}?reg_id=${widget.regId}&academic_yr=${widget.academicYr}&short_name=${widget.shortName}',
+                  // ),
+                ),
+              ],
+            ),
+          ),
+          if (academic_yrShow == widget.academicYr)
+            Align(
+              alignment: Alignment(0, -0.80), // 👈 move to top
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 30.h),
+                padding: EdgeInsets.all(10.h),
+                decoration: BoxDecoration(
+                  color: Colors.yellow.shade100.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: Colors.orange),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange, size: 20.sp),
+                    SizedBox(width: 8.w),
+                    Flexible(
+                      child: Text(
+                        'Don’t refresh or close this page.\nThis page will refresh once transaction is done.',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+        ],
+      ),
+
     );
   }
+
+  Future<void> _downloadFile(String url) async {
+    setState(() {
+      _isDownloading = true;
+    });
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    try {
+      // First check if the URL is valid and file exists (HEAD request)
+      final headResponse = await http.head(Uri.parse(url));
+      if (headResponse.statusCode == 404) {
+        throw Exception('File not found (404)');
+      }
+
+      // Create download directory
+      final directory = Directory("/storage/emulated/0/Download/Evolvuschool/Parent/receipt");
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
+      // Generate unique filename
+      int fileNumber = 1;
+      while (await File('${directory.path}/receipt_$fileNumber.pdf').exists()) {
+        fileNumber++;
+      }
+      final fileName = 'receipt_$fileNumber.pdf';
+      final path = '${directory.path}/$fileName';
+      final file = File(path);
+
+      // Show downloading notification
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Downloading Receipt',
+        'Downloading $fileName...',
+        platformChannelSpecifics,
+      );
+
+      // Download the file
+      final response = await http.get(Uri.parse(url));
+
+      // Validate the downloaded content
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download (${response.statusCode})');
+      }
+
+      // Check if it's a valid PDF (basic check)
+      // if (response.bodyBytes.length < 4 ||
+      //     !List.from(response.bodyBytes.take(4)).equals('%PDF'.codeUnits)) {
+      //   throw Exception('Invalid PDF file');
+      // }
+
+      // Save the file
+      await file.writeAsBytes(response.bodyBytes);
+
+      // Verify the saved file
+      if (!await file.exists() || await file.length() == 0) {
+        throw Exception('File save failed');
+      }
+
+      // Show success notification
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Complete',
+        'File saved to Downloads/Evolvuschool/Parent/receipt/$fileName',
+        platformChannelSpecifics,
+        payload: path,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File downloaded successfully'),
+        ),
+      );
+    } catch (e) {
+      // Show error notification
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download: ${e.toString().replaceAll('Exception: ', '')}',
+        platformChannelSpecifics,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Download failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isDownloading = false;
+      });
+    }
+  }
+
+  Future<void> _downloadFileIOS(String url) async {
+    setState(() {
+      _isDownloading = true; // Show loader
+    });
+
+    final directory = await getApplicationDocumentsDirectory();
+
+    int fileNumber = 1;
+    while (await File('${directory.path}/receipt_$fileNumber.pdf').exists()) {
+      fileNumber++;
+    }
+
+    var fileName = 'receipt_$fileNumber.pdf';
+    var path = '${directory.path}/$fileName';
+    var file = File(path);
+
+    // Show downloading notification
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'download_channel',
+      'Download Channel',
+      channelDescription: 'Notifications for file downloads',
+      importance: Importance.high,
+      priority: Priority.high,
+      showProgress: true,
+      onlyAlertOnce: true,
+    );
+
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    try {
+
+      // await flutterLocalNotificationsPlugin.show(
+      //   0,
+      //   'Downloading Receipt',
+      //   'Downloading $fileName...',
+      //   platformChannelSpecifics,
+      // );
+
+      try {
+        var res = await http.get(Uri.parse(url));
+        await file.writeAsBytes(res.bodyBytes);
+
+        // Update notification to show download complete
+        await flutterLocalNotificationsPlugin.show(
+          0,
+          'Download Complete',
+          'File saved to $path',
+          platformChannelSpecifics,
+          payload: path, // Pass the file path as payload
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Find it in the Files/On My iPhone/EvolvU Smart School - Parent. $fileName'),
+          ),
+        );
+      } catch (e) {
+        await flutterLocalNotificationsPlugin.show(
+          0,
+          'Download Failed',
+          'Failed to download file',
+          platformChannelSpecifics,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download file'),
+          ),
+        );
+      }
+
+    } catch (e) {
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Download Failed',
+        'Failed to download file',
+        platformChannelSpecifics,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isDownloading = false; // Hide loader after completion
+      });
+    }
+  }
 }
+

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutUsPage extends StatelessWidget {
   final String academic_yr;
   final String shortName;
-   AboutUsPage({required this.academic_yr, required this.shortName});
+
+  AboutUsPage({required this.academic_yr, required this.shortName});
 
   Future<void> _launchUrl(String url) async {
     if (!await launchUrl(Uri.parse(url))) {
@@ -41,15 +43,66 @@ class AboutUsPage extends StatelessWidget {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 100),
+                const SizedBox(height: 80),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20,0,0,0),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                   child: Image.asset(
                     'assets/logo.png',
-                    height: 90,
+                    height: 80,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+
+                // Current Version Card with FutureBuilder
+                FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    String version = 'Loading...';
+                    String buildNumber = '';
+
+                    if (snapshot.hasData) {
+                      version = snapshot.data!.version;
+                      buildNumber = snapshot.data!.buildNumber;
+                    }
+
+                    return Center(
+                      child: InkWell(
+                        // onTap: () {
+                        //   _launchUrl('https://play.google.com/store/apps/details?id=in.aceventura.evolvuschool.teacherapp');
+                        // },
+                        child: Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified_sharp, color: Colors.blueAccent),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Current Version: $version",
+                                  style: TextStyle(
+                                    color: Colors.blueAccent,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                // Icon(Icons.arrow_circle_right_outlined, color: Colors.black),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Rest of your content remains the same...
                 Container(
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
@@ -109,7 +162,6 @@ class AboutUsPage extends StatelessWidget {
                                   color: Colors.black,
                                 ),
                               ),
-                            
                               TextSpan(
                                 text: 'contact@aceventura.in',
                                 style: TextStyle(
@@ -124,8 +176,7 @@ class AboutUsPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       GestureDetector(
-                        onTap: () =>
-                            _launchUrl('mailto:aceventuraservices@gmail.com'),
+                        onTap: () => _launchUrl('mailto:aceventuraservices@gmail.com'),
                         child: RichText(
                           textAlign: TextAlign.center,
                           text: const TextSpan(
@@ -149,6 +200,7 @@ class AboutUsPage extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -169,6 +221,7 @@ class AboutUsPage extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -199,8 +252,7 @@ class AboutUsPage extends StatelessWidget {
                             width: 45,
                             child: IconButton(
                               icon: Image.asset('assets/google.png'),
-                              onPressed: () =>
-                                  _launchUrl('https://aceventura.in/'),
+                              onPressed: () => _launchUrl('https://aceventura.in/'),
                             ),
                           ),
                         ],
@@ -214,7 +266,5 @@ class AboutUsPage extends StatelessWidget {
         ),
       ),
     );
-  
-  
   }
 }

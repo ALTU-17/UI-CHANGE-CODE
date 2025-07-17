@@ -86,6 +86,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         'user_id': _userIdController.text.trim(),
       },
     );
+    print("receive_new_password: " + projectUrl);
+
     print("receive_new_password" + response.body);
 
     if (response.statusCode == 200) {
@@ -146,6 +148,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         'role_id': 'P', // Assuming the role_id is 'parent'
       },
     );
+    print("www" + url);
     print("www" + response.body);
 
     if (response.statusCode == 200) {

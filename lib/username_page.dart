@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:evolvu/login.dart';
 import 'package:evolvu/Parent/parentDashBoard_Page.dart';
@@ -24,6 +25,7 @@ class SchoolInfo {
   final String teacherApkUrl;
   final String projectUrl;
   final String defaultPassword;
+  final String laravel_project_url;
 
   SchoolInfo({
     required this.schoolId,
@@ -33,6 +35,7 @@ class SchoolInfo {
     required this.teacherApkUrl,
     required this.projectUrl,
     required this.defaultPassword,
+    required this.laravel_project_url,
   });
 
   // Method to deserialize JSON into SchoolInfo object
@@ -45,6 +48,7 @@ class SchoolInfo {
       teacherApkUrl: json['teacherapk_url'],
       projectUrl: json['project_url'],
       defaultPassword: json['default_password'],
+      laravel_project_url: json['laravel_project_url'],
     );
   }
 
@@ -58,6 +62,7 @@ class SchoolInfo {
       'teacherapk_url': teacherApkUrl,
       'project_url': projectUrl,
       'default_password': defaultPassword,
+      'laravel_project_url': laravel_project_url,
     };
   }
 }
@@ -75,20 +80,23 @@ class _LoginDemoState extends State<UserNamePage> {
   @override
   void initState() {
     super.initState();
-    PackageInfo.fromPlatform().then((value) {
-      packageInfoVar = value.version;
-      print(value); // Value will be our all details we get from package info package
-    });
-    // email = TextEditingController(text: widget.emailstr);
+    _getPackageInfo();
     checkLoginStatus();
-
     getURL();
-
-    // _getSchoolInfo();
-// Check login status when the login screen is initialized
   }
 
-// Define a class to represent the user's school information
+  Future<String?> getLaravelBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('laravel_base_url');
+  }
+
+  Future<void> _getPackageInfo() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      packageInfoVar = packageInfo.version;
+    });
+    print(packageInfo);
+  }
 
   TextEditingController email = TextEditingController();
 
@@ -111,7 +119,7 @@ class _LoginDemoState extends State<UserNamePage> {
       );
 
       print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('Response body: ${BaseURl+'validate_user'}');
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -132,6 +140,7 @@ class _LoginDemoState extends State<UserNamePage> {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('school_info', schoolInfoJson);
           await _getSchoolInfo();
+
           // Navigate to the login screen
           Navigator.push(
             context,
@@ -183,7 +192,7 @@ class _LoginDemoState extends State<UserNamePage> {
         academic_yr = logUrlsparsed['academic_yr'];
         reg_id = logUrlsparsed['reg_id'];
 
-        print('academic_yr ID: $academic_yr');
+        print('academic_yr ID username: $academic_yr');
         print('reg_id: $reg_id');
       } catch (e) {
         print('Error parsing school info: $e');
@@ -212,16 +221,48 @@ class _LoginDemoState extends State<UserNamePage> {
     }
   }
 
+  Future<String?> _fetchAcademicYear() async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(url+'get_academic_year'),
+      );
+      request.fields['short_name'] = shortName;
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('get_academic_year body: ${response.body}');
+
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty && data[0]['academic_yr'] != null) {
+          return data[0]['academic_yr'].toString();
+        }
+      }
+    } catch (e) {
+      log("Error fetching academic year: $e");
+    }
+    return null;
+  }
+
   void checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? acdYR = prefs.getString('acdYR');
+    print('acdYR body: $acdYR');
+
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     if (isLoggedIn) {
-      //   If user is already logged in, navigate to QRScannerPage
+
+      final fetchedAcademicYr = await _fetchAcademicYear();
+      print('fetchedAcademicYr using get_academic_year: $fetchedAcademicYr');
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
             builder: (_) => ParentDashBoardPage(
-                shortName: shortName, academic_yr: academic_yr)),
+                shortName: shortName, academic_yr: fetchedAcademicYr ?? acdYR.toString())),
       );
     }
   }
@@ -387,8 +428,8 @@ class _LoginDemoState extends State<UserNamePage> {
   Future<void> getURL() async {
 
     final apiService = ApiService();
-    // final packageInfo = await PackageInfo.fromPlatform();
-    // packageInfoVar = packageInfo.version;
+    final packageInfo = await PackageInfo.fromPlatform();
+    packageInfoVar = packageInfo.version;
     try {
       // Call the API and get the cleaned response
       BaseURl = await apiService.fetchUrl();
@@ -525,27 +566,15 @@ class _LoginDemoState extends State<UserNamePage> {
         print('latest_version => ${response.body}');
 
         if (jsonData is List && jsonData.isNotEmpty) {
-          final packageInfo = await PackageInfo.fromPlatform();
-          packageInfoVar = packageInfo.version;
-          print('Current_version => ${packageInfo.version}');
-          print('Current_version packageInfoVar=> ${packageInfoVar}');
 
           final androidVersion = jsonData[0]['latest_version'] as String;
           final releaseNotes = jsonData[0]['release_notes'] as String;
           final forcedUpdate = jsonData[0]['forced_update'] as String;
 
           if (androidVersion != null) {
-            print('Current_version => 22222 ${packageInfo.version}');
-
-            final localAndroidVersion = packageInfo.version;
-
             // Compare versions
-            if (_isVersionGreater(androidVersion, localAndroidVersion)) {
-              print('Current_version => 3333 ${packageInfo.version}');
-
+            if (_isVersionGreater(androidVersion, packageInfoVar)) {
               if (forcedUpdate == 'N') {
-                print('Current_version => NNNNN ${packageInfo.version}');
-
                 showDialog(
                   context: _context,
                   builder: (BuildContext context) {
@@ -575,8 +604,6 @@ class _LoginDemoState extends State<UserNamePage> {
                   },
                 );
               } else if (forcedUpdate == 'Y') {
-                print('Current_version => 44444 ${packageInfo.version}');
-
                 showDialog(
                   context: _context,
                   barrierDismissible: false, // Prevent dismissing the dialog
